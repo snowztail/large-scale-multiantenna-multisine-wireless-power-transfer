@@ -1,5 +1,26 @@
-function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, sampleFrequency, fadingType)
-
+function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFrequency, fadingType)
+    % Function:
+    %   - simulate channel using the power delay profile of the IEEE TGn NLOS channel model E
+    %
+    % InputArg(s):
+    %   - distance [d]: distance between base station and user
+    %   - nSubbands [N]: number of subbands/subcarriers
+    %   - nRxs: number of receive antennas
+    %   - nTxs [M]: number of transmit antennas
+    %   - carrierFrequency: center frequency at each subband
+    %   - fadingType: "flat" or "selective"
+    %
+    % OutputArg(s):
+    %   - subchannel [h_{q, n}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %
+    % Comment(s):
+    %   - the model only considers power delay profile of clusters
+    %   - the reference pass loss is set to 60.046 dB for a distance of 10 m
+    %
+    % Reference(s):
+    %   - V. Erceg et al., "TGn channel models," in Version 4. IEEE 802.11–03/940r4, May 2004.
+    %
+    % Author & Date: Yang (i@snowztail.com) - 07 Mar 20
 
     nClusters = 4;
     nTaps = 18;
@@ -17,25 +38,24 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, sampleFre
     end
     tapGain = sum(cat(4, tapGain{:}), 4);
 
-    fading = zeros(nSubbands, nRxs, nTxs);
+    fading = zeros(nRxs, nTxs, nSubbands);
     switch fadingType
     case "selective"
         for iRx = 1 : nRxs
             for iTx = 1 : nTxs
                 for iSubband = 1 : nSubbands
-                    fading(iSubband, iRx, iTx) = sum(tapGain(:, iRx, iTx) .* exp(1i * 2 * pi * sampleFrequency(iSubband) * tapDelay));
+                    fading(iRx, iTx, iSubband) = sum(tapGain(:, iRx, iTx) .* exp(1i * 2 * pi * carrierFrequency(iSubband) * tapDelay));
                 end
             end
         end
     case "flat"
         for iRx = 1 : nRxs
             for iTx = 1 : nTxs
-                fading(:, iRx, iTx) = repmat(sum(tapGain(:, iRx, iTx) .* exp(1i * 2 * pi * mean(sampleFrequency) * tapDelay)), [nSubbands 1]);
+                fading(iRx, iTx, :) = repmat(sum(tapGain(:, iRx, iTx) .* exp(1i * 2 * pi * mean(carrierFrequency) * tapDelay)), [1 1 nSubbands]);
             end
         end
     end
 
-    % large-scale fading
     pathlossExponent = 2;
     % shadowingStdDevDb = 3;
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
