@@ -1,12 +1,15 @@
+clear; close all; clc;
 powerBudget = 1;
 nTxs = 4;
+nRxs = 2;
 nSubbands = 8;
 beta2 = 2e-3;
 beta4 = 4e-3;
 tolerance = 1e-3;
 
 % \boldsymbol{h}_q
-channel = sqrt(1 / 2) * (randn(nTxs * nSubbands, 1) + 1i * randn(nTxs * nSubbands, 1));
+channel = channel_tgn_e(nSubbands, nTxs, nRxs);
+% channel = sqrt(1 / 2) * (randn(nTxs * nSubbands, 1) + 1i * randn(nTxs * nSubbands, 1));
 
 % \boldsymbol{h}_{q,n}
 subchannel = reshape(channel, [nTxs, nSubbands]);
