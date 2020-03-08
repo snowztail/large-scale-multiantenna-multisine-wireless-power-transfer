@@ -11,7 +11,7 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFr
     %   - fadingType: "flat" or "selective"
     %
     % OutputArg(s):
-    %   - subchannel [h_{q, n}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %   - subchannel [\boldsymbol{h_{q, n}}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
     %
     % Comment(s):
     %   - the model only considers power delay profile of clusters
@@ -40,7 +40,7 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFr
 
     fading = zeros(nRxs, nTxs, nSubbands);
     switch fadingType
-    case "selective"
+    case 'selective'
         for iRx = 1 : nRxs
             for iTx = 1 : nTxs
                 for iSubband = 1 : nSubbands
@@ -48,7 +48,7 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFr
                 end
             end
         end
-    case "flat"
+    case 'flat'
         for iRx = 1 : nRxs
             for iTx = 1 : nTxs
                 fading(iRx, iTx, :) = repmat(sum(tapGain(:, iRx, iTx) .* exp(1i * 2 * pi * mean(carrierFrequency) * tapDelay)), [1 1 nSubbands]);
@@ -57,11 +57,7 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFr
     end
 
     pathlossExponent = 2;
-    % shadowingStdDevDb = 3;
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
-    % shadowing = db2pow(shadowingStdDevDb * randn);
-
-    % subchannel = fading / pathloss / shadowing;
-    subchannel = fading / pathloss;
+    subchannel = fading / sqrt(pathloss);
 
 end
