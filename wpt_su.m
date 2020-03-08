@@ -19,4 +19,6 @@ tolerance = 1e-3;
 % \boldsymbol{h}_{q,n}
 subchannel = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFrequency, fadingType);
 % s_n
-waveform = wpt_su(beta2, beta4, powerBudget, subchannel, tolerance);
+waveform = waveform_su(beta2, beta4, powerBudget, subchannel, tolerance);
+% v_{\text{out},q}
+voltage = harvester(beta2, beta4, waveform, subchannel);
