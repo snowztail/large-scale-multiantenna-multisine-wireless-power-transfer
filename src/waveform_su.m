@@ -6,11 +6,11 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - subchannel [h_{q, n}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %   - subchannel [\boldsymbol{h_{q, n}}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %
     % OutputArg(s):
-    %   - waveform [s_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %
     % Comment(s):
     %   - for single-user MISO systems
@@ -27,7 +27,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
     % single receive antenna
     [~, ~, nSubbands] = size(subchannel);
     subchannel = squeeze(subchannel);
-    % ? initialize p by uniform power allocation
+    % ? initialize \boldsymbol{p} by uniform power allocation
     frequencyWeight = sqrt(powerBudget / nSubbands) * ones(nSubbands, 1);
     % \boldsymbol{X}
     frequencyWeightMatrix = frequencyWeight * frequencyWeight';
@@ -74,8 +74,9 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
         end
         frequencyWeightMatrix = frequencyWeightMatrix_;
     end
+    % \boldsymbol{\tilde{s}_n}
     spatialPrecoder = conj(subchannel) ./ vecnorm(subchannel);
-    % s_n
+    % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
 
 end
