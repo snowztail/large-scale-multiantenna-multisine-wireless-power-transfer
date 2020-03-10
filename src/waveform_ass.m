@@ -4,7 +4,7 @@ function [waveform] = waveform_ass(powerBudget, subchannel)
     %
     % InputArg(s):
     %   - powerBudget [P]: transmit power constraint
-    %   - subchannel [h_{q, n}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %   - subchannel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
@@ -19,8 +19,7 @@ function [waveform] = waveform_ass(powerBudget, subchannel)
     %
     % Author & Date: Yang (i@snowztail.com) - 08 Mar 20
 
-    % single receive antenna
-    subchannel = squeeze(subchannel);
+
     % \boldsymbol{p}
     frequencyWeight = sqrt(powerBudget) * (max(vecnorm(subchannel)) == vecnorm(subchannel))';
     % \boldsymbol{\tilde{s}_n}

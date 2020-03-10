@@ -1,6 +1,5 @@
 %% Transceiver
 powerBudget = 0.5;
-nRxs = 1;
 %% Channel
 centerFrequency = 2.4e9;
 bandwidth = 1e7;

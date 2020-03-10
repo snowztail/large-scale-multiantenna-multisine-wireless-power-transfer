@@ -6,7 +6,7 @@ function voltage = harvester(beta2, beta4, waveform, subchannel)
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
-    %   - subchannel [\boldsymbol{h_{q, n}}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %   - subchannel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - voltage [v_{\text{out}}]: rectifier output DC voltage
@@ -21,8 +21,7 @@ function voltage = harvester(beta2, beta4, waveform, subchannel)
 
 
     % single receive antenna
-    [~, ~, nSubbands] = size(subchannel);
-    subchannel = squeeze(subchannel);
+    [~, nSubbands] = size(subchannel);
 
     % the second order term in Taylor expansion
     term2 = 0;

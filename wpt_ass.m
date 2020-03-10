@@ -9,7 +9,7 @@ for iCase = 1 : length(Variable.nTxs)
         distance = Variable.distance(iDistance);
         for iRealization = 1 : nRealizations
             % \boldsymbol{h}_{q,n}
-            subchannel = channel_tgn_e(distance, nSubbands, nRxs, nTxs, carrierFrequency, fadingType);
+            subchannel = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType);
             % \boldsymbol{s_n}
             waveform = waveform_ass(powerBudget, subchannel);
             % v_{\text{out},q}

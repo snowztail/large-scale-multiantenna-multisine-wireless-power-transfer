@@ -6,7 +6,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - subchannel [\boldsymbol{h_{q, n}}] (nRxs * nTxs * nSubbands): channel frequency response at each subband
+    %   - subchannel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %
     % OutputArg(s):
@@ -25,8 +25,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
 
 
     % single receive antenna
-    [~, ~, nSubbands] = size(subchannel);
-    subchannel = squeeze(subchannel);
+    [~, nSubbands] = size(subchannel);
     % ? initialize \boldsymbol{p} by uniform power allocation
     frequencyWeight = sqrt(powerBudget / nSubbands) * ones(nSubbands, 1);
     % \boldsymbol{X}
