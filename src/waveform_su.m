@@ -1,4 +1,4 @@
-function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, tolerance)
+function [waveform] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,7 +6,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - subchannel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %
     % OutputArg(s):
@@ -25,17 +25,17 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
 
 
     % single receive antenna
-    [~, nSubbands] = size(subchannel);
+    [~, nSubbands] = size(channel);
     % ? initialize \boldsymbol{p} by uniform power allocation
     frequencyWeight = sqrt(powerBudget / nSubbands) * ones(nSubbands, 1);
     % \boldsymbol{X}
     frequencyWeightMatrix = frequencyWeight * frequencyWeight';
     % \boldsymbol{M}''_k
-    channelNormMatrix = cell(nSubbands, 1);
-    % \boldsymbol{t}
-    auxiliary = zeros(nSubbands, 1);
+    channelNormMatrix = cell(1, nSubbands);
+    % t_k
+    auxiliary = zeros(1, nSubbands);
     for iSubband = 1 : nSubbands
-        channelNormMatrix{iSubband} = diag(diag(vecnorm(subchannel).' * vecnorm(subchannel), iSubband - 1), iSubband - 1);
+        channelNormMatrix{iSubband} = diag(diag(vecnorm(channel).' * vecnorm(channel), iSubband - 1), iSubband - 1);
         auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * frequencyWeightMatrix);
     end
 
@@ -74,7 +74,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, subchannel, toleran
         frequencyWeightMatrix = frequencyWeightMatrix_;
     end
     % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(subchannel) ./ vecnorm(subchannel);
+    spatialPrecoder = conj(channel) ./ vecnorm(channel);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
 

@@ -1,10 +1,10 @@
-function [waveform] = waveform_ass(powerBudget, subchannel)
+function [waveform] = waveform_ass(powerBudget, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - powerBudget [P]: transmit power constraint
-    %   - subchannel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
@@ -21,9 +21,9 @@ function [waveform] = waveform_ass(powerBudget, subchannel)
 
 
     % \boldsymbol{p}
-    frequencyWeight = sqrt(powerBudget) * (max(vecnorm(subchannel)) == vecnorm(subchannel))';
+    frequencyWeight = sqrt(powerBudget) * (max(vecnorm(channel)) == vecnorm(channel))';
     % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(subchannel) ./ vecnorm(subchannel);
+    spatialPrecoder = conj(channel) ./ vecnorm(channel);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
 

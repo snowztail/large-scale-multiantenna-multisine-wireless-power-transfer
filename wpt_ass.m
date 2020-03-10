@@ -9,11 +9,11 @@ for iCase = 1 : length(Variable.nTxs)
         distance = Variable.distance(iDistance);
         for iRealization = 1 : nRealizations
             % \boldsymbol{h}_{q,n}
-            subchannel = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType);
+            channel = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType);
             % \boldsymbol{s_n}
-            waveform = waveform_ass(powerBudget, subchannel);
+            waveform = waveform_ass(powerBudget, channel);
             % v_{\text{out},q}
-            voltage(iCase, iDistance, iRealization) = harvester(beta2, beta4, waveform, subchannel);
+            voltage(iCase, iDistance, iRealization) = harvester(beta2, beta4, waveform, channel);
         end
     end
 end

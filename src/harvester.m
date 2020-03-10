@@ -1,4 +1,4 @@
-function voltage = harvester(beta2, beta4, waveform, subchannel)
+function voltage = harvester(beta2, beta4, waveform, channel)
     % Function:
     %   - calculate the harvester output voltage
     %
@@ -6,7 +6,7 @@ function voltage = harvester(beta2, beta4, waveform, subchannel)
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
-    %   - subchannel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - voltage [v_{\text{out}}]: rectifier output DC voltage
@@ -21,12 +21,12 @@ function voltage = harvester(beta2, beta4, waveform, subchannel)
 
 
     % single receive antenna
-    [~, nSubbands] = size(subchannel);
+    [~, nSubbands] = size(channel);
 
     % the second order term in Taylor expansion
     term2 = 0;
     for iSubband = 1 : nSubbands
-        term2 = term2 + waveform(:, iSubband)' * conj(subchannel(:, iSubband)) * subchannel(:, iSubband).' * waveform(:, iSubband);
+        term2 = term2 + waveform(:, iSubband)' * conj(channel(:, iSubband)) * channel(:, iSubband).' * waveform(:, iSubband);
     end
     % the fourth order term in Taylor expansion
     term4 = 0;
@@ -37,7 +37,7 @@ function voltage = harvester(beta2, beta4, waveform, subchannel)
                     % output DC voltage if balanced
                     isBalanced = iSubband1 + iSubband2 == iSubband3 + iSubband4;
                     if isBalanced
-                        term4 = term4 + (3 / 2) * waveform(:, iSubband3)' * conj(subchannel(:, iSubband3)) * subchannel(:, iSubband1).' * waveform(:, iSubband1) * waveform(:, iSubband4)' * conj(subchannel(:, iSubband4)) * subchannel(:, iSubband2).' * waveform(:, iSubband2);
+                        term4 = term4 + (3 / 2) * waveform(:, iSubband3)' * conj(channel(:, iSubband3)) * channel(:, iSubband1).' * waveform(:, iSubband1) * waveform(:, iSubband4)' * conj(channel(:, iSubband4)) * channel(:, iSubband2).' * waveform(:, iSubband2);
                     end
                 end
             end

@@ -1,4 +1,4 @@
-function [subchannel] = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType)
+function [channel] = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType)
     % Function:
     %   - simulate channel using the power delay profile of the IEEE TGn NLOS channel model E
     %
@@ -10,7 +10,7 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequenc
     %   - fadingType: "flat" or "selective"
     %
     % OutputArg(s):
-    %   - subchannel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % Comment(s):
     %   - assume single receive antenna
@@ -51,6 +51,6 @@ function [subchannel] = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequenc
 
     pathlossExponent = 2;
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
-    subchannel = fading / sqrt(pathloss);
+    channel = fading / sqrt(pathloss);
 
 end
