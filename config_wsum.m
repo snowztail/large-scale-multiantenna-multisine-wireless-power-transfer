@@ -1,7 +1,6 @@
 %% Transceiver
 powerBudget = 0.5;
 nTxs = 4;
-nRxs = 1;
 %% Channel
 nSubbands = 8;
 centerFrequency = 2.4e9;
@@ -16,5 +15,5 @@ beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
 %% User
-nUsers = 1;
+nUsers = 10;
 weight = ones(nUsers, 1);
