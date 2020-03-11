@@ -3,6 +3,7 @@ powerBudget = 0.5;
 %% Channel
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
+pathlossExponent = 2;
 nRealizations = 2e2;
 fadingType = 'selective';
 %% Harvester

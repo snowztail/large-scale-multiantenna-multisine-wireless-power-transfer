@@ -1,4 +1,4 @@
-function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType)
+function [channel] = channel_uncorrelated(pathloss, nSubbands, nTxs, fadingType)
     % Function:
     %   - simulate channel using the power delay profile of the IEEE TGn NLOS channel model E
     %
@@ -6,7 +6,6 @@ function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, 
     %   - pathloss [\Lambda]: large-scale channel strength reduction
     %   - nSubbands [N]: number of subbands/subcarriers
     %   - nTxs [M]: number of transmit antennas
-    %   - carrierFrequency: center frequency at each subband
     %   - fadingType: "flat" or "selective"
     %
     % OutputArg(s):
@@ -14,17 +13,17 @@ function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, 
     %
     % Comment(s):
     %   - assume single receive antenna
-    %   - the model only considers power delay profile of clusters
+    %   - the channel of a given user is sufficiently frequency-selective so that it is i.i.d. in space and frequency
+    %   - the channel across users are fully uncorrelated
     %   - the reference pass loss is set to 60.046 dB for a distance of 10 m
     %
     % Reference(s):
-    %   - V. Erceg et al., "TGn channel models," in Version 4. IEEE 802.11–03/940r4, May 2004.
+    %   - Y. Huang and B. Clerckx, "Large-Scale Multiantenna Multisine Wireless Power Transfer," IEEE Transactions on Signal Processing, vol. 65, no. 21, pp. 5812–5827, Jan. 2017.
     %
-    % Author & Date: Yang (i@snowztail.com) - 07 Mar 20
+    % Author & Date: Yang (i@snowztail.com) - 11 Mar 20
 
     nClusters = 4;
     nTaps = 18;
-    tapDelay = 1e-9 * [0 10 20 30 50 80 110 140 180 230 280 330 380 430 490 560 640 730]';
     tapPower = zeros(nTaps, nClusters);
     tapPower(:, 1) = db2pow([-2.6 -3.0 -3.5 -3.9 -4.5 -5.6 -6.9 -8.2 -9.8 -11.7 -13.9 -16.1 -18.3 -20.5 -22.9 -inf -inf -inf]');
     tapPower(:, 2) = db2pow([-inf -inf -inf -inf -1.8 -3.2 -4.5 -5.8 -7.1 -9.9 -10.3 -14.3 -14.7 -18.7 -19.9 -22.4 -inf -inf]');
@@ -40,12 +39,12 @@ function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, 
     case 'selective'
         for iTx = 1 : nTxs
             for iSubband = 1 : nSubbands
-                fading(iTx, iSubband) = sum(tapGain(:, iTx) .* exp(1i * 2 * pi * carrierFrequency(iSubband) * tapDelay));
+                fading(iTx, iSubband) = sum(tapGain(:, iTx) .* exp(1i * 2 * pi * rand));
             end
         end
     case 'flat'
         for iTx = 1 : nTxs
-            fading(iTx, :) = repmat(sum(tapGain(:, iTx) .* exp(1i * 2 * pi * mean(carrierFrequency) * tapDelay)), [1 nSubbands]);
+            fading(iTx, :) = repmat(sum(tapGain(:, iTx) .* exp(1i * 2 * pi * rand)), [1 nSubbands]);
         end
     end
     channel = fading / sqrt(pathloss);

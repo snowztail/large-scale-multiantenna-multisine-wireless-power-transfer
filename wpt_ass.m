@@ -7,9 +7,10 @@ for iCase = 1 : length(Variable.nTxs)
     carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
     for iDistance = 1 : length(Variable.distance)
         distance = Variable.distance(iDistance);
+        pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
         for iRealization = 1 : nRealizations
             % \boldsymbol{h}_{q,n}
-            channel = channel_tgn_e(distance, nSubbands, nTxs, carrierFrequency, fadingType);
+            channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
             % \boldsymbol{s_n}
             waveform = waveform_ass(powerBudget, channel);
             % v_{\text{out},q}
