@@ -1,4 +1,4 @@
-function waveform = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %

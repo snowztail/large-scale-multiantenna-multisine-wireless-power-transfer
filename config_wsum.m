@@ -18,4 +18,4 @@ beta4 = 6.0304e6;
 tolerance = 1e-3;
 %% User
 nUsers = 10;
-weight = ones(nUsers, 1);
+weight = 1: nUsers;
