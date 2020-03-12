@@ -1,6 +1,6 @@
 clear; close all; clc; initialize; config_su;
 %% Waveform design by SU WPT algorithm
-voltage = zeros(length(Variable.nSubbands), length(Variable.distance), nRealizations);
+voltage = zeros(length(Variable.nTxs), length(Variable.distance), nRealizations);
 for iCase = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iCase);
     nSubbands = Variable.nSubbands(iCase);

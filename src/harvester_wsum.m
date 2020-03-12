@@ -7,6 +7,7 @@ function [sumVoltage, wsumVoltage] = harvester_wsum(beta2, beta4, waveform, chan
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - weight [w_q] (1 * nUsers): user weights
     %
     % OutputArg(s):
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users

@@ -1,19 +1,40 @@
 clear; close all; clc; initialize; config_wsum;
-%% Waveform design by WSum algorithm
-channel = zeros(nTxs, nSubbands, nUsers);
-for iUser = 1 : nUsers
-    % \boldsymbol{h}_{q,n}
-    channel(:, :, iUser) = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
+%% Waveform design by SU WPT and WSum algorithms
+voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
+voltageWsum = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
+for iTx = 1 : length(Variable.nTxs)
+    nTxs = Variable.nTxs(iTx);
+    for iSubband = 1 : length(Variable.nSubbands)
+        nSubbands = Variable.nSubbands(iSubband);
+        carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
+        for iRealization = 1 : nRealizations
+            % \boldsymbol{h}_{q,n}
+            channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
+            % \boldsymbol{s_n}
+            waveformSu = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
+            waveformWsum = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
+            % v_{\text{out},q}
+            voltageSu(iTx, iSubband, iRealization) = harvester(beta2, beta4, waveformSu, channel);
+            voltageWsum(iTx, iSubband, iRealization) = harvester(beta2, beta4, waveformWsum, channel);
+        end
+    end
 end
-% \boldsymbol{s_n}
-% waveform = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
-% waveform1 = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
-waveform2 = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight);
-[waveform3, asymWaveform3] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss);
-
-% v_{\text{out},q}
-% voltage = harvester(beta2, beta4, waveform, channel);
-% voltage1 = harvester(beta2, beta4, waveform1, channel);
-voltage2 = harvester_wsum(beta2, beta4, waveform2, channel, weight);
-voltage3 = harvester_wsum(beta2, beta4, asymWaveform3, channel, weight);
-
+voltageSu = mean(voltageSu, 3);
+voltageWsum = mean(voltageWsum, 3);
+save('data/wpt_wsum.mat');
+%% Result
+legendString = cell(2, length(Variable.nTxs));
+figure('Name', sprintf('Average single user output voltage by SU WPT and WSum as a function of sinewaves'));
+for iTx = 1 : length(Variable.nTxs)
+    plot(Variable.nSubbands, voltageSu(iTx, :), 'Marker', x);
+    legendString{1, iTx} = sprintf('SU WPT: M = %d', Variable.nTxs(iTx));
+    plot(Variable.nSubbands, voltageWsum(iTx, :), 'Marker', o);
+    legendString{2, iTx} = sprintf('WSum: M = %d', Variable.nTxs(iTx));
+    hold on;
+end
+hold off;
+grid minor;
+legend(legendString);
+xlabel('Number of tones')
+ylabel('Average v_{out} [V]')
+% savefig('results/wpt_wsum.fig');

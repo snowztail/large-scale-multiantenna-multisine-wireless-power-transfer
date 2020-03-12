@@ -1,11 +1,8 @@
 %% Transceiver
-powerBudget = 0.5;
-nTxs = 4;
+powerBudget = db2pow(36 - 30);
 %% Channel
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
-nSubbands = 8;
-carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
 distance = 10;
 pathlossExponent = 2;
 pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
@@ -17,5 +14,8 @@ beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
 %% User
-nUsers = 10;
-weight = 1: nUsers;
+nUsers = 1;
+weight = ones(1, nUsers);
+%% Variables
+Variable.nTxs = [1 4];
+Variable.nSubbands = 2 .^ (6 : 6);
