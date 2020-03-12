@@ -14,5 +14,6 @@ waveform2 = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight
 % v_{\text{out},q}
 % voltage = harvester(beta2, beta4, waveform, channel);
 % voltage1 = harvester(beta2, beta4, waveform1, channel);
-% voltage2 = harvester(beta2, beta4, waveform2, channel);
+voltage2 = harvester_wsum(beta2, beta4, waveform2, channel, weight);
+voltage3 = harvester_wsum(beta2, beta4, asymWaveform3, channel, weight);
 
