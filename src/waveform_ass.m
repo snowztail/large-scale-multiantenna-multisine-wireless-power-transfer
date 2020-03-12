@@ -7,7 +7,7 @@ function [waveform] = waveform_ass(powerBudget, channel)
     %   - channel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %
     % Comment(s):
     %   - for single-user MISO systems

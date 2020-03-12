@@ -1,4 +1,4 @@
-function [waveform] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
+function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -10,7 +10,7 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
     %   - tolerance [\epsilon]: convergence ratio
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %
     % Comment(s):
     %   - for single-user MISO systems
@@ -42,7 +42,11 @@ function [waveform] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
     isConverged = false;
     while ~isConverged
         % \boldsymbol{C}''_1
-        termC1 = - (beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1} - 3 * beta4 * sum(cat(3, channelNormMatrix{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3);
+        if nSubbands == 1
+            termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1});
+        else
+            termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1} + 3 * beta4 * sum(cat(3, channelNormMatrix{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3));
+        end
         % \boldsymbol{A}''_1
         termA1 = termC1 + termC1';
 

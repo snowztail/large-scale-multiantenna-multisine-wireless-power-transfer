@@ -8,10 +8,10 @@ function [waveform] = waveform_wsum(beta2, beta4, powerBudget, channel, toleranc
     %   - powerBudget [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w_q]: user weights
+    %   - weight [w_q] (1 * nUsers): user weights
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s_n}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -55,8 +55,14 @@ function [waveform] = waveform_wsum(beta2, beta4, powerBudget, channel, toleranc
     while ~isConverged
         % \boldsymbol{C}_1
         termC1 = 0;
-        for iUser = 1 : nUsers
-            termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1} + 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
+        if nSubbands == 1
+            for iUser = 1 : nUsers
+                termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            end
+        else
+            for iUser = 1 : nUsers
+                termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1} + 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
+            end
         end
         % \boldsymbol{A}_1
         termA1 = termC1 + termC1';
