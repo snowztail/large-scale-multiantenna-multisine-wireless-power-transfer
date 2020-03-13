@@ -9,9 +9,7 @@ for iTx = 1 : length(Variable.nTxs)
         nSubbands = Variable.nSubbands(iSubband);
         carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
         for iRealization = 1 : nRealizations
-            % \boldsymbol{h}_{n}
             channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
-            % \boldsymbol{s_n}, v_{\text{out},q}
             [~, voltageSu(iTx, iSubband, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
             [~, voltageWsum(iTx, iSubband, iRealization)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
         end
@@ -23,7 +21,7 @@ save('data/wpt_wsum.mat');
 %% Result
 legendString = cell(2, length(Variable.nTxs));
 legendColor = num2cell(get(gca, 'colororder'), 2);
-figure('Name', sprintf('Average single user output voltage by SU WPT and WSum as a function of sinewaves'));
+figure('Name', sprintf('Average output voltage by SU WPT and WSum as a function of sinewaves for single user transmission'));
 for iTx = 1 : length(Variable.nTxs)
     plot(Variable.nSubbands, voltageSu(iTx, :) * 1e3, 'color', legendColor{iTx}, 'Marker', 'x');
     legendString{1, iTx} = sprintf('SU WPT: M = %d', Variable.nTxs(iTx));

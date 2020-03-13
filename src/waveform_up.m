@@ -1,16 +1,19 @@
-function [waveform] = waveform_up(powerBudget, channel)
+function [waveform, voltage] = waveform_up(beta2, beta4, powerBudget, channel, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
+    %   - beta2 [\beta_2]: diode second-order parameter
+    %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
     %   - channel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - weight [w_q] (1 * nUsers): user weights
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %
     % Comment(s):
-    %   - for single-user MISO systems
+    %   - for single-user and multi-user MISO systems
     %   - allocate power uniformly over all subbands
     %
     % Reference(s):
@@ -18,13 +21,14 @@ function [waveform] = waveform_up(powerBudget, channel)
     %
     % Author & Date: Yang (i@snowztail.com) - 11 Mar 20
 
-    % single receive antenna
-    [~, nSubbands] = size(channel);
+
+    % \boldsymbol{w}_n
+    spatialPrecoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
     % \boldsymbol{p}
-    frequencyWeight = sqrt(powerBudget / nSubbands);
-    % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
-    % \boldsymbol{s_n}
+    frequencyWeight = sqrt(powerBudget / norm(spatialPrecoder, 'fro') ^ 2);
+    % \boldsymbol{s}_n
     waveform = frequencyWeight * spatialPrecoder;
+    % v_{\text{out}, q}
+    voltage = harvester(beta2, beta4, waveform, channel, weight);
 
 end

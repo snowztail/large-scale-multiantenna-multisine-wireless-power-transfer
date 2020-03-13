@@ -9,9 +9,7 @@ for iCase = 1 : length(Variable.nTxs)
         distance = Variable.distance(iDistance);
         pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
         for iRealization = 1 : nRealizations
-            % \boldsymbol{h}_{q,n}
             channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
-            % \boldsymbol{s_n}
             [~, voltage(iCase, iDistance, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
         end
     end

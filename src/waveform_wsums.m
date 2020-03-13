@@ -103,7 +103,6 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_wsums(beta2, beta4, powe
             end
         end
     end
-    frequencyWeight = reshape(frequencyWeight, [nTxs, nSubbands]);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
     % \sum v_{\text{out}}

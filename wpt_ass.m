@@ -9,12 +9,8 @@ for iCase = 1 : length(Variable.nTxs)
         distance = Variable.distance(iDistance);
         pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
         for iRealization = 1 : nRealizations
-            % \boldsymbol{h}_{q,n}
             channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
-            % \boldsymbol{s_n}
-            waveform = waveform_ass(powerBudget, channel);
-            % v_{\text{out},q}
-            voltage(iCase, iDistance, iRealization) = harvester(beta2, beta4, waveform, channel);
+            [~, voltage(iCase, iDistance, iRealization)] = waveform_ass(beta2, beta4, powerBudget, channel);
         end
     end
 end
