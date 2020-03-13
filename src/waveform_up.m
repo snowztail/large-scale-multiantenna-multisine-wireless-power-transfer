@@ -23,7 +23,7 @@ function [waveform] = waveform_up(powerBudget, channel)
     % \boldsymbol{p}
     frequencyWeight = sqrt(powerBudget / nSubbands);
     % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(channel) ./ vecnorm(channel);
+    spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
     % \boldsymbol{s_n}
     waveform = frequencyWeight * spatialPrecoder;
 

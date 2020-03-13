@@ -21,9 +21,9 @@ function [waveform] = waveform_ass(powerBudget, channel)
 
 
     % \boldsymbol{p}
-    frequencyWeight = sqrt(powerBudget) * (max(vecnorm(channel)) == vecnorm(channel))';
+    frequencyWeight = sqrt(powerBudget) * (max(vecnorm(channel, 2, 1)) == vecnorm(channel, 2, 1))';
     % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(channel) ./ vecnorm(channel);
+    spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
 
