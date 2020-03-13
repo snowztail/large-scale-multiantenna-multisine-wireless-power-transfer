@@ -1,4 +1,4 @@
-function [waveform] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, sumVoltage, wsumVoltage] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,12 +6,14 @@ function [waveform] = waveform_wsums(beta2, beta4, powerBudget, channel, toleran
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - wsumVoltage [\sum w * v_{\text{out}}]: weighted sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -62,17 +64,15 @@ function [waveform] = waveform_wsums(beta2, beta4, powerBudget, channel, toleran
     while ~isConverged
         % \boldsymbol{C}'''_1
         termC1 = 0;
-        if nSubbands == 1
-            for iUser = 1 : nUsers
-                termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1});
-            end
-        else
-            for iUser = 1 : nUsers
-                termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1} + 3 * beta4 * sum(cat(3, equivalentChannelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
+        for iUser = 1 : nUsers
+            termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1});
+            if nSubbands > 1
+                termC1 = termC1 - weight(iUser) * (3 * beta4 * sum(cat(3, equivalentChannelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
             end
         end
         % \boldsymbol{A}'''_1
         termA1 = termC1 + termC1';
+
         % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
         % \boldsymbol{x}^{\star}
         [v, d] = eig(termA1);
@@ -92,7 +92,23 @@ function [waveform] = waveform_wsums(beta2, beta4, powerBudget, channel, toleran
         end
         frequencyWeightMatrix = frequencyWeightMatrix_;
     end
+
+    % v_{\text{out},q}
+    voltage = zeros(1, nUsers);
+    for iUser = 1 : nUsers
+        voltage(iUser) = beta2 * frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight + (3 / 2) * beta4 * frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight * (frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight)';
+        if nSubbands > 1
+            for iSubband = 1 : nSubbands - 1
+                voltage(iUser) = voltage(iUser) + 3 * beta4 * frequencyWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * frequencyWeight * (frequencyWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * frequencyWeight)';
+            end
+        end
+    end
+    frequencyWeight = reshape(frequencyWeight, [nTxs, nSubbands]);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
+    % \sum v_{\text{out}}
+    sumVoltage = real(sum(voltage));
+    % \sum w * v_{\text{out}}
+    wsumVoltage = real(sum(weight .* voltage));
 
 end

@@ -1,4 +1,4 @@
-function [waveform] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
+function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,13 +6,15 @@ function [waveform] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tole
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
     %   - pathloss [\Lambda] (1 * nUsers): user pathlosses
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_{\text{asym}}] (nTxs * nSubbands): the asymptotically optimal complex waveform weights for each transmit antenna and subband
+    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - wsumVoltage [\sum w * v_{\text{out}}]: weighted sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -55,10 +57,9 @@ function [waveform] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tole
         % \boldsymbol{A}'_{q, 1}
         termA1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
-            if nSubbands == 1
-                termC1{iUser} = - ((beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 + 3 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
-            else
-                termC1{iUser} = - ((beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 + 3 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1} + 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3));
+            termC1{iUser} = - ((beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 + 3 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
+            if nSubbands > 1
+                termC1{iUser} = termC1{iUser} - 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             termA1{iUser} = weight(iUser) * (termC1{iUser} + termC1{iUser}');
         end
@@ -88,9 +89,24 @@ function [waveform] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tole
         end
         frequencyWeight = frequencyWeight_;
     end
+
+    % v_{\text{out},q}
+    voltage = zeros(1, nUsers);
+    for iUser = 1 : nUsers
+        voltage(iUser) = beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 * frequencyWeight(:, iUser)' * frequencyWeight(:, iUser) + 3 / 2 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser))';
+        if nSubbands > 1
+            for iSubband = 1 : nSubbands - 1
+                voltage(iUser) = voltage(iUser) + 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser))';
+            end
+        end
+    end
     % \bar{\boldsymbol{s}}_n
     normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
     % \boldsymbol{s}_{\text{asym}}
     waveform = sqrt(powerBudget) * normalizedWaveform / norm(normalizedWaveform, 'fro');
+    % \sum v_{\text{out}}
+    sumVoltage = real(sum(voltage));
+    % \sum w * v_{\text{out}}
+    wsumVoltage = real(sum(weight .* voltage));
 
 end

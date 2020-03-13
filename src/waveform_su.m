@@ -11,6 +11,7 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - volgate [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for single-user MISO systems
@@ -35,17 +36,16 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
     % t_k
     auxiliary = zeros(1, nSubbands);
     for iSubband = 1 : nSubbands
-        channelNormMatrix{iSubband} = diag(diag(vecnorm(channel).' * vecnorm(channel), iSubband - 1), iSubband - 1);
+        channelNormMatrix{iSubband} = diag(diag(vecnorm(channel, 2, 1).' * vecnorm(channel, 2, 1), iSubband - 1), iSubband - 1);
         auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * frequencyWeightMatrix);
     end
 
     isConverged = false;
     while ~isConverged
         % \boldsymbol{C}''_1
-        if nSubbands == 1
-            termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1});
-        else
-            termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1} + 3 * beta4 * sum(cat(3, channelNormMatrix{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3));
+        termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1});
+        if nSubbands > 1
+            termC1 = termC1 - (3 * beta4 * sum(cat(3, channelNormMatrix{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3));
         end
         % \boldsymbol{A}''_1
         termA1 = termC1 + termC1';
@@ -78,8 +78,15 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
         frequencyWeightMatrix = frequencyWeightMatrix_;
     end
     % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(channel) ./ vecnorm(channel);
+    spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
+    % v_{\text{out},q}
+    voltage = beta2 * frequencyWeight' * channelNormMatrix{1} * frequencyWeight + (3 / 2) * beta4 * frequencyWeight' * channelNormMatrix{1} * frequencyWeight * (frequencyWeight' * channelNormMatrix{1} * frequencyWeight)';
+    if nSubbands > 1
+        for iSubband = 1 : nSubbands - 1
+            voltage = voltage + 3 * beta4 * frequencyWeight' * channelNormMatrix{iSubband + 1} * frequencyWeight * (frequencyWeight' * channelNormMatrix{iSubband + 1} * frequencyWeight)';
+        end
+    end
 
 end
