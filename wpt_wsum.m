@@ -4,18 +4,23 @@ voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizatio
 voltageWsum = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
 for iTx = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iTx);
+    powerBudget = eirp / nTxs;
     for iSubband = 1 : length(Variable.nSubbands)
         nSubbands = Variable.nSubbands(iSubband);
         carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
         for iRealization = 1 : nRealizations
-            % \boldsymbol{h}_{q,n}
-            channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
-            % \boldsymbol{s_n}
-            waveformSu = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
-            waveformWsum = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
-            % v_{\text{out},q}
-            voltageSu(iTx, iSubband, iRealization) = harvester(beta2, beta4, waveformSu, channel);
-            voltageWsum(iTx, iSubband, iRealization) = harvester(beta2, beta4, waveformWsum, channel);
+            channel = zeros(nTxs, nSubbands, nUsers);
+            for iUser = 1 : nUsers
+                % \boldsymbol{h}_{q,n}
+                channel(:, :, iUser) = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
+            end
+            % \boldsymbol{s_n}, v_{\text{out},q}
+%             [waveformSu, voltageSu] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
+            [waveformWsum, voltageWsum] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight);
+            [waveformCheWsum, voltageCheWsum] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss);
+            % % v_{\text{out},q}
+            % voltageSu1 = harvester(beta2, beta4, waveformSu, channel);
+            % voltageWsum1 = harvester(beta2, beta4, waveformWsum, channel);
         end
     end
 end

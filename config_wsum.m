@@ -1,5 +1,5 @@
 %% Transceiver
-powerBudget = db2pow(36 - 30);
+eirp = db2pow(36 - 30);
 %% Channel
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
@@ -14,8 +14,8 @@ beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
 %% User
-nUsers = 1;
-weight = ones(1, nUsers);
+nUsers = 2;
+weight = 1 : nUsers;
 %% Variables
-Variable.nTxs = [1 4];
-Variable.nSubbands = 2 .^ (6 : 6);
+Variable.nTxs = [4];
+Variable.nSubbands = 2 .^ (3 : 6);
