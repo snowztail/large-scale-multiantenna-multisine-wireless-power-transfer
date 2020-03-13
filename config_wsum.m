@@ -14,8 +14,8 @@ beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
 %% User
-nUsers = 2;
+nUsers = 1;
 weight = 1 : nUsers;
 %% Variables
-Variable.nTxs = [4];
-Variable.nSubbands = 2 .^ (3 : 6);
+Variable.nTxs = [1 4];
+Variable.nSubbands = 2 .^ (0 : 6);

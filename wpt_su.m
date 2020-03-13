@@ -12,9 +12,7 @@ for iCase = 1 : length(Variable.nTxs)
             % \boldsymbol{h}_{q,n}
             channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
             % \boldsymbol{s_n}
-            waveform = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
-            % v_{\text{out},q}
-            voltage(iCase, iDistance, iRealization) = harvester(beta2, beta4, waveform, channel);
+            [~, voltage(iCase, iDistance, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
         end
     end
 end
