@@ -1,3 +1,6 @@
+%% User
+nUsers = 1;
+weight = ones(1, nUsers);
 %% Transceiver
 eirp = db2pow(36 - 30);
 %% Channel
@@ -13,9 +16,6 @@ fadingType = 'selective';
 beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
-%% User
-nUsers = 1;
-weight = 1 : nUsers;
 %% Variables
 Variable.nTxs = [1 4 20];
 Variable.nSubbands = 2 .^ (0 : 6);

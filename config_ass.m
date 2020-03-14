@@ -1,3 +1,5 @@
+%% User
+nUsers = 1;
 %% Transceiver
 powerBudget = 0.5;
 %% Channel
