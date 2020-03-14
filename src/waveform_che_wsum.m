@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
+function [waveform, voltage] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -13,8 +13,7 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, p
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_{\text{asym}}] (nTxs * nSubbands): the asymptotically optimal complex waveform weights for each transmit antenna and subband
-    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - wsumVoltage [\sum w * v_{\text{out}}]: weighted sum of rectifier output DC voltage over all users
+    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -33,7 +32,7 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, p
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? users have the same pathloss
     % pathloss = rand(1, nUsers);
-    pathloss = pathloss * ones(1, nUsers);
+    pathloss = 1 / pathloss * ones(1, nUsers);
     % ? initialize \boldsymbol{p}_q by uniform power allocation over subbands of a given user (the power across users depend on pathloss)
     frequencyWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
 
@@ -69,7 +68,7 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, p
         pathlossMatrix = diag(repelem(pathloss, nSubbands));
 
         % * Solve \bar{\boldsymbol{p}} in closed form (low complexity)
-        [v, d] = eig(termA1 / pathlossMatrix);
+        [v, d] = eig(pathlossMatrix \ termA1);
         vMin = v(:, diag(d) == min(diag(d)));
         % \bar{\boldsymbol{p}}
         frequencyWeight_ = sqrt(1 / (vMin' * pathlossMatrix * vMin)) * vMin;
@@ -90,23 +89,25 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_che_wsum(beta2, beta4, p
         frequencyWeight = frequencyWeight_;
     end
 
-    % v_{\text{out},q}
-    voltage = zeros(1, nUsers);
-    for iUser = 1 : nUsers
-        voltage(iUser) = beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 * frequencyWeight(:, iUser)' * frequencyWeight(:, iUser) + 3 / 2 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser))';
-        if nSubbands > 1
-            for iSubband = 1 : nSubbands - 1
-                voltage(iUser) = voltage(iUser) + 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser))';
-            end
-        end
-    end
+    % % * asymptotic out voltage v_{\text{out},q}'
+    % voltage = zeros(1, nUsers);
+    % for iUser = 1 : nUsers
+    %     voltage(iUser) = beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 * frequencyWeight(:, iUser)' * frequencyWeight(:, iUser) + 3 / 2 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{1} * frequencyWeight(:, iUser))';
+    %     if nSubbands > 1
+    %         for iSubband = 1 : nSubbands - 1
+    %             voltage(iUser) = voltage(iUser) + 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser)) * (frequencyWeight(:, iUser)' * shiftMatrix{iSubband + 1} * frequencyWeight(:, iUser))';
+    %         end
+    %     end
+    % end
+    % % \sum v_{\text{out}}'
+    % sumVoltage = real(sum(voltage));
+    % % \sum w * v_{\text{out}}'
+    % wsumVoltage = real(sum(weight .* voltage));
+
     % \bar{\boldsymbol{s}}_n
     normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
     % \boldsymbol{s}_{\text{asym}}
     waveform = sqrt(powerBudget) * normalizedWaveform / norm(normalizedWaveform, 'fro');
     % \sum v_{\text{out}}
-    sumVoltage = real(sum(voltage));
-    % \sum w * v_{\text{out}}
-    wsumVoltage = real(sum(weight .* voltage));
-
+    voltage = harvester_compact(beta2, beta4, waveform, channel);
 end

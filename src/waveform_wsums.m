@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, wsumVoltage] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, voltage] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -12,8 +12,7 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_wsums(beta2, beta4, powe
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
-    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - wsumVoltage [\sum w * v_{\text{out}}]: weighted sum of rectifier output DC voltage over all users
+    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -106,8 +105,6 @@ function [waveform, sumVoltage, wsumVoltage] = waveform_wsums(beta2, beta4, powe
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
     % \sum v_{\text{out}}
-    sumVoltage = real(sum(voltage));
-    % \sum w * v_{\text{out}}
-    wsumVoltage = real(sum(weight .* voltage));
+    voltage = real(sum(voltage));
 
 end

@@ -1,4 +1,4 @@
-function [waveform, voltage] = waveform_up(beta2, beta4, powerBudget, channel, weight)
+function [waveform, voltage] = waveform_up(beta2, beta4, powerBudget, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,15 +6,16 @@ function [waveform, voltage] = waveform_up(beta2, beta4, powerBudget, channel, w
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - channel [h_{q, n}] (nTxs * nSubbands): channel frequency response at each subband
-    %   - weight [w_q] (1 * nUsers): user weights
+    %   - channel [h_{q, n}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %
     % Comment(s):
     %   - for single-user and multi-user MISO systems
     %   - allocate power uniformly over all subbands
+    %   - asymptotically optimal spatial beamformer
     %
     % Reference(s):
     %   - B. Clerckx and E. Bayguzina, "Waveform Design for Wireless Power Transfer," IEEE Transactions on Signal Processing, vol. 64, no. 23, pp. 6313–6328, Jan. 2016.
@@ -28,7 +29,7 @@ function [waveform, voltage] = waveform_up(beta2, beta4, powerBudget, channel, w
     frequencyWeight = sqrt(powerBudget / norm(spatialPrecoder, 'fro') ^ 2);
     % \boldsymbol{s}_n
     waveform = frequencyWeight * spatialPrecoder;
-    % v_{\text{out}, q}
-    voltage = harvester(beta2, beta4, waveform, channel, weight);
+    % \sum v_{\text{out}, q}
+    voltage = harvester_compact(beta2, beta4, waveform, channel);
 
 end

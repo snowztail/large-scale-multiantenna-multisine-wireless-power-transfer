@@ -6,10 +6,11 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, powerBudget, channel)
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - powerBudget [P]: transmit power constraint
-    %   - channel [h_{n}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [h_n] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - voltage [v_{\text{out}}]: rectifier output DC voltage
     %
     % Comment(s):
     %   - for single-user MISO systems
@@ -22,8 +23,6 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, powerBudget, channel)
     % Author & Date: Yang (i@snowztail.com) - 08 Mar 20
 
 
-    % single-user transmission
-    weight = 1;
     % \boldsymbol{p}
     frequencyWeight = sqrt(powerBudget) * (max(vecnorm(channel, 2, 1)) == vecnorm(channel, 2, 1))';
     % \boldsymbol{\tilde{s}_n}
@@ -31,6 +30,6 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, powerBudget, channel)
     % \boldsymbol{s_n}
     waveform = frequencyWeight.' .* spatialPrecoder;
     % v_{\text{out}}
-    voltage = harvester(beta2, beta4, waveform, channel, weight);
+    voltage = harvester_compact(beta2, beta4, waveform, channel);
 
 end
