@@ -2,10 +2,7 @@ clear; close all; clc; initialize; config_che_wsum;
 %% Waveform design by WSum and CHE WSum algorithms for two-user scenario
 userVoltageWsum = zeros(length(Variable.weight), nUsers);
 userVoltageCheWsum = zeros(length(Variable.weight), nUsers);
-channel = zeros(nTxs, nSubbands, nUsers);
-for iUser = 1 : nUsers
-    channel(:, :, iUser) = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
-end
+channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
 for iWeight = 1 : length(Variable.weight)
     weight = Variable.weight(iWeight, :);
     [~, ~, userVoltageWsum(iWeight, :)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);

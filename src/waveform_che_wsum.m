@@ -33,7 +33,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_che_wsum(beta2, beta4, p
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? users have the same pathloss
     % pathloss = rand(1, nUsers);
-    pathloss = 1 / pathloss * ones(1, nUsers);
+    pathloss = 1 ./ pathloss;
     % ? initialize \boldsymbol{p}_q by uniform power allocation over subbands of a given user (the power across users depend on pathloss)
     frequencyWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
 

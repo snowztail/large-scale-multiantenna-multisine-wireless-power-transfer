@@ -1,16 +1,17 @@
-function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType)
+function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType)
     % Function:
     %   - simulate channel using the power delay profile of the IEEE TGn NLOS channel model E
     %
     % InputArg(s):
     %   - pathloss [\Lambda]: large-scale channel strength reduction
-    %   - nSubbands [N]: number of subbands/subcarriers
     %   - nTxs [M]: number of transmit antennas
+    %   - nSubbands [N]: number of subbands/subcarriers
+    %   - nUsers [K]: number of users
     %   - carrierFrequency: center frequency at each subband
     %   - fadingType: "flat" or "selective"
     %
     % OutputArg(s):
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %
     % Comment(s):
     %   - assume single receive antenna
@@ -32,22 +33,26 @@ function [channel] = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, 
     tapPower(:, 4) = db2pow([-inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -20.6 -20.5 -20.7 -24.6]');
 
     % model taps as i.i.d. CSCG variables
-    tapGain = repmat(sqrt(tapPower / 2), [1 1 nTxs]) .* (randn(nTaps, nClusters, nTxs) + 1i * randn(nTaps, nClusters, nTxs));
+    tapGain = repmat(sqrt(tapPower / 2), [1 1 nTxs nUsers]) .* (randn(nTaps, nClusters, nTxs, nUsers) + 1i * randn(nTaps, nClusters, nTxs, nUsers));
     tapGain = squeeze(sum(tapGain, 2));
 
-    fading = zeros(nTxs, nSubbands);
+    fading = zeros(nTxs, nSubbands, nUsers);
     switch fadingType
     case 'selective'
         for iTx = 1 : nTxs
             for iSubband = 1 : nSubbands
-                fading(iTx, iSubband) = sum(tapGain(:, iTx) .* exp(1i * 2 * pi * carrierFrequency(iSubband) * tapDelay));
+                for iUser = 1 : nUsers
+                    fading(iTx, iSubband, iUser) = sum(tapGain(:, iTx, iUser) .* exp(1i * 2 * pi * carrierFrequency(iSubband) * tapDelay));
+                end
             end
         end
     case 'flat'
         for iTx = 1 : nTxs
-            fading(iTx, :) = repmat(sum(tapGain(:, iTx) .* exp(1i * 2 * pi * mean(carrierFrequency) * tapDelay)), [1 nSubbands]);
+            for iUser = 1 : nUsers
+                fading(iTx, :, iUser) = repmat(sum(tapGain(:, iTx, iUser) .* exp(1i * 2 * pi * mean(carrierFrequency) * tapDelay)), [1 nSubbands]);
+            end
         end
     end
-    channel = fading / sqrt(pathloss);
+    channel = fading ./ sqrt(reshape(pathloss, [1 1 nUsers]));
 
 end

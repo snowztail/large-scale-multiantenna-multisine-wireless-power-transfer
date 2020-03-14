@@ -9,7 +9,7 @@ for iTx = 1 : length(Variable.nTxs)
         nSubbands = Variable.nSubbands(iSubband);
         carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
         for iRealization = 1 : nRealizations
-            channel = channel_tgn_e(pathloss, nSubbands, nTxs, carrierFrequency, fadingType);
+            channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
             [~, voltageSu(iTx, iSubband, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
             [~, voltageWsum(iTx, iSubband, iRealization)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
         end
