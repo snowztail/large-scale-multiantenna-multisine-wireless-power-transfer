@@ -1,4 +1,4 @@
-function [waveform, voltage] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -12,7 +12,8 @@ function [waveform, voltage] = waveform_wsum(beta2, beta4, powerBudget, channel,
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
-    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -86,19 +87,20 @@ function [waveform, voltage] = waveform_wsum(beta2, beta4, powerBudget, channel,
         end
         waveformMatrix = waveformMatrix_;
     end
-    % v_{\text{out},q}
-    voltage = zeros(1, nUsers);
+    % v_{\text{out}, q}
+    userVoltage = zeros(1, nUsers);
     for iUser = 1 : nUsers
-        voltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
+        userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
         if nSubbands > 1
             for iSubband = 1 : nSubbands - 1
-                voltage(iUser) = voltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
+                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
             end
         end
     end
+    userVoltage = real(userVoltage);
     % \boldsymbol{s_n}
     waveform = reshape(waveform, [nTxs, nSubbands]);
     % \sum v_{\text{out}}
-    voltage = real(sum(voltage));
+    sumVoltage = sum(userVoltage);
 
 end

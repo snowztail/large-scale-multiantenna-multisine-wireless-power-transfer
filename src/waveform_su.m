@@ -11,7 +11,7 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
-    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - voltage [\sum v_{\text{out}}]: rectifier output DC voltage
     %
     % Comment(s):
     %   - for single-user MISO systems

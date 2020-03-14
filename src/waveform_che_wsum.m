@@ -1,4 +1,4 @@
-function [waveform, voltage] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
+function [waveform, sumVoltage, userVoltage] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -13,7 +13,8 @@ function [waveform, voltage] = waveform_che_wsum(beta2, beta4, powerBudget, chan
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_{\text{asym}}] (nTxs * nSubbands): the asymptotically optimal complex waveform weights for each transmit antenna and subband
-    %   - voltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -108,6 +109,6 @@ function [waveform, voltage] = waveform_che_wsum(beta2, beta4, powerBudget, chan
     normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
     % \boldsymbol{s}_{\text{asym}}
     waveform = sqrt(powerBudget) * normalizedWaveform / norm(normalizedWaveform, 'fro');
-    % \sum v_{\text{out}}
-    voltage = harvester_compact(beta2, beta4, waveform, channel);
+    % \sum v_{\text{out}}, v\{\text{out}, q}
+    [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 end

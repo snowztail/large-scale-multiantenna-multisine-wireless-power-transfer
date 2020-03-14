@@ -1,4 +1,4 @@
-function [sumVoltage] = harvester_compact(beta2, beta4, waveform, channel)
+function [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel)
     % Function:
     %   - calculate the harvester output voltage
     %
@@ -10,6 +10,7 @@ function [sumVoltage] = harvester_compact(beta2, beta4, waveform, channel)
     %
     % OutputArg(s):
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
+    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
     %
     % Comment(s):
     %   - truncate the voltage expression to the fourth order to capture fundamental behavior of rectifier nonlinearity
@@ -40,16 +41,17 @@ function [sumVoltage] = harvester_compact(beta2, beta4, waveform, channel)
     end
 
     % v_{\text{out},q}
-    voltage = zeros(1, nUsers);
+    userVoltage = zeros(1, nUsers);
     for iUser = 1 : nUsers
-        voltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
+        userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
         if nSubbands > 1
             for iSubband = 1 : nSubbands - 1
-                voltage(iUser) = voltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
+                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
             end
         end
     end
+    userVoltage = real(userVoltage);
     % \sum v_{\text{out}}
-    sumVoltage = real(sum(voltage));
+    sumVoltage = sum(userVoltage);
 
 end
