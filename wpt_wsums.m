@@ -18,7 +18,7 @@ for iUser = 1 : length(Variable.nUsers)
 end
 voltageWsum = mean(voltageWsum, 3);
 voltageWSums = mean(voltageWSums, 3);
-% save('data/wpt_wsums.mat');
+save('data/wpt_wsums.mat');
 %% Result
 legendString = cell(2, length(Variable.nUsers));
 legendColor = num2cell(get(gca, 'colororder'), 2);
@@ -38,4 +38,4 @@ grid on;
 legend(legendString(:), 'location', 'nw');
 xlabel('Number of tones')
 ylabel('Average v_{out} [mV]')
-% savefig('results/wpt_wsums.fig');
+savefig('results/wpt_wsums.fig');
