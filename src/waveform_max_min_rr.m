@@ -91,7 +91,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_max_min_rr(beta2, beta4,
             % decompose waveform matrix as a product of a matrix V and its Hermitian
             waveformFactor = cholcov(waveformMatrix)';
             % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, waveformRank ^ 2);
+            coefficient = zeros(nUsers, size(waveformFactor, 2) ^ 2);
             for iUser = 1 : nUsers
                 coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
             end
@@ -99,8 +99,12 @@ function [waveform, sumVoltage, userVoltage] = waveform_max_min_rr(beta2, beta4,
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
+            delta = (delta + delta') / 2;
             [~, d] = eig(delta);
-            waveformMatrix = waveformFactor * (eye(rank(waveformMatrix)) - 1 / d(abs(diag(d)) == max(abs(diag(d)))) * delta) * waveformFactor';
+            dominantEigenvalue = d(abs(diag(d)) == max(abs(diag(d))));
+            waveformMatrix = waveformFactor * (eye(waveformRank) - 1 / dominantEigenvalue(1) * delta) * waveformFactor';
+            % fix accuracy issue and ensure strict symmetric
+            waveformMatrix = (waveformMatrix + waveformMatrix') / 2;
             % update waveform rank
             waveformRank = rank(waveformMatrix);
         end
