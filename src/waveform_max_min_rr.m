@@ -100,12 +100,14 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             % obtain an orthonormal basis for the null space of the coefficient matrix
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
-            delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
+            delta = reshape(delta(:, 1), [sqrt(size(delta, 1)), sqrt(size(delta, 1))]);
             delta = (delta + delta') / 2;
-            [~, d] = eig(delta);
+            d = eig(delta);
             dominantEigenvalue = d(abs(d) == max(abs(d)));
             % there can be multiple equivalent entries with largest magnitude and we only use the first one
-            waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / dominantEigenvalue(1) * delta) * waveformFactor';
+            waveformMatrix_ = waveformFactor * (eye(size(delta, 1)) - 1 / dominantEigenvalue(1) * delta) * waveformFactor';
+            % ensure positive semidefiniteness
+            waveformMatrix_ = (waveformMatrix_ + waveformMatrix_') / 2;
             % update waveform rank
             waveformRank = rank(waveformMatrix_);
         end
