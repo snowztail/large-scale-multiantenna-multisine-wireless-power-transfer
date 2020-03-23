@@ -53,9 +53,11 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     end
 
     isConverged = false;
+    counter = 0;
     % \boldsymbol{A}_0
-    termA0 = diag(-3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
+    termA0 = diag(- 3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
+        counter = counter + 1;
         % \bar{c}_q
         termBarC = zeros(1, nUsers);
         % \boldsymbol{C}_{q, 1}
@@ -86,30 +88,36 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         [~, userIndex] = max(target);
 
         % * Rank reduction for separable SDP
-        waveformRank = rank(highRankWaveformMatrix);
-        % matrix to reduce rank
         waveformMatrix_ = highRankWaveformMatrix;
+        waveformRank = rank(waveformMatrix_);
         while waveformRank ^ 2 > nUsers
             % decompose waveform matrix as a product of a matrix V and its Hermitian
             waveformFactor = cholcov(waveformMatrix_)';
             % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, size(waveformFactor, 2) ^ 2);
+            coefficient = zeros(nUsers, waveformRank ^ 2);
             for iUser = 1 : nUsers
                 coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
             end
             % obtain an orthonormal basis for the null space of the coefficient matrix
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
-            delta = reshape(sum(delta, 2), [sqrt(size(delta, 1)), sqrt(size(delta, 1))]);
+            delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
+            % ensure positive definiteness
             delta = (delta + delta') / 2;
-            d = eig(delta);
+            % calculate eigenvalues of delta
+            d = real(eig(delta));
+            % obtain the ones with largest magnitude
             dominantEigenvalue = d(abs(d) == max(abs(d)));
-            % there can be multiple equivalent entries with largest magnitude and we only use the first one
-            waveformMatrix_ = waveformFactor * (eye(size(delta, 1)) - 1 / dominantEigenvalue(1) * delta) * waveformFactor';
-            % % ensure positive semidefiniteness
-%             waveformMatrix_ = (waveformMatrix_ + waveformMatrix_') / 2;
-            % update waveform rank
-            waveformRank = rank(waveformMatrix_, eps);
+            clearvars d;
+            % there can be multiple candidates and we only use the minimum one
+            waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / min(dominantEigenvalue) * delta) * waveformFactor';
+            % ! ensure positive semidefiniteness
+            [v, d] = eig(waveformMatrix_);
+            d(d < 0) = 0;
+            waveformMatrix_ = v * d * v';
+            clearvars v d;
+            % update matrix rank
+            waveformRank = rank(waveformMatrix_);
         end
 
         % Update \boldsymbol{t}_{q, k}
@@ -120,7 +128,8 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         end
 
         % test convergence
-        if (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro') <= tolerance
+        temp = (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro')
+        if (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro') <= tolerance || counter >= 1e2
             isConverged = true;
         end
         waveformMatrix = waveformMatrix_;
