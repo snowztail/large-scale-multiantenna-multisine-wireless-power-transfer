@@ -86,28 +86,29 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         [~, userIndex] = max(target);
 
         % * Rank reduction for separable SDP
-        waveformRank = rank(highRankWaveformMatrix);
-        % matrix to reduce rank
         waveformMatrix_ = highRankWaveformMatrix;
+        waveformRank = rank(waveformMatrix_, eps);
         while waveformRank ^ 2 > nUsers
             % decompose waveform matrix as a product of a matrix V and its Hermitian
             waveformFactor = cholcov(waveformMatrix_)';
             % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, size(waveformFactor, 2) ^ 2);
+            coefficient = zeros(nUsers + waveformRank ^ 2 / 2, waveformRank ^ 2);
             for iUser = 1 : nUsers
                 coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
             end
+            % ensure positive semidefiniteness
+            coefficient(nUsers + 1 : end, :) = [eye(waveformRank ^ 2 / 2), - fliplr(eye(waveformRank ^ 2 / 2))];
             % obtain an orthonormal basis for the null space of the coefficient matrix
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             delta = reshape(sum(delta, 2), [sqrt(size(delta, 1)), sqrt(size(delta, 1))]);
-            delta = (delta + delta') / 2;
+            % calculate eigenvalues of delta
             d = eig(delta);
+            % obtain the ones with largest magnitude
             dominantEigenvalue = d(abs(d) == max(abs(d)));
-            % there can be multiple equivalent entries with largest magnitude and we only use the first one
+            clearvars d;
+            % there can be multiple candidates and we only use the first one
             waveformMatrix_ = waveformFactor * (eye(size(delta, 1)) - 1 / dominantEigenvalue(1) * delta) * waveformFactor';
-            % % ensure positive semidefiniteness
-%             waveformMatrix_ = (waveformMatrix_ + waveformMatrix_') / 2;
             % update waveform rank
             waveformRank = rank(waveformMatrix_, eps);
         end
