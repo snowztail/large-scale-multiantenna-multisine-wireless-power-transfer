@@ -1,4 +1,4 @@
-function [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel)
+function [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel)
     % Function:
     %   - calculate the harvester output voltage
     %
@@ -11,6 +11,7 @@ function [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, c
     % OutputArg(s):
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %   - userVoltage [v_{\text{out}, q}]: individual user voltages
+    %   - minVoltage: minimum user voltage
     %
     % Comment(s):
     %   - truncate the voltage expression to the fourth order to capture fundamental behavior of rectifier nonlinearity
@@ -51,6 +52,8 @@ function [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, c
         end
     end
     userVoltage = real(userVoltage);
+    % minimum user voltage
+    minVoltage = min(userVoltage);
     % \sum v_{\text{out}}
     sumVoltage = sum(userVoltage);
 
