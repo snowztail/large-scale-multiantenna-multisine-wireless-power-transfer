@@ -108,9 +108,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             d = real(eig(delta));
             % obtain the ones with largest magnitude
             dominantEigenvalue = d(abs(d) == max(abs(d)));
+            % there can be multiple candidates and we only use the minimum one (the negative one if there is both positive and negative)
+            dominantEigenvalue = min(dominantEigenvalue);
             clearvars d;
-            % there can be multiple candidates and we only use the minimum one
-            waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / min(dominantEigenvalue) * delta) * waveformFactor';
+            waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / dominantEigenvalue * delta) * waveformFactor';
             % ! ensure positive semidefiniteness
             [v, d] = eig(waveformMatrix_);
             d(d < 0) = 0;

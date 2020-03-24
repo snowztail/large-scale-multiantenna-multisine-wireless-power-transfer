@@ -9,7 +9,6 @@ nSubbands = 4;
 carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
 distance = 10;
 pathlossExponent = 2;
-pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
 nRealizations = 1e2;
 fadingType = 'selective';
 %% Harvester
