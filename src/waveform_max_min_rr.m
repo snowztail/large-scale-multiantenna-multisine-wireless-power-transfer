@@ -102,7 +102,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
-            % ensure positive definiteness
+            % ensure positive semidefiniteness
             delta = (delta + delta') / 2;
             % calculate eigenvalues of delta
             d = real(eig(delta));
