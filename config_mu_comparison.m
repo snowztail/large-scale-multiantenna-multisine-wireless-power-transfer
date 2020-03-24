@@ -1,6 +1,9 @@
+%% User
+nUsers = 2;
+weight = ones(1, nUsers);
 %% Transceiver
 eirp = db2pow(36 - 30);
-nTxs = 4;
+nTxs = 3;
 powerBudget = eirp / nTxs;
 %% Channel
 centerFrequency = 2.4e9;
@@ -17,6 +20,3 @@ fadingType = 'selective';
 beta2 = 9.6712e2;
 beta4 = 6.0304e6;
 tolerance = 1e-3;
-%% Variables
-Variable.nUsers = [2 3];
-Variable.nCandidates = [1 5 50 500];
