@@ -37,10 +37,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     % ? users have the same pathloss
     % pathloss = rand(1, nUsers);
     pathloss = 1 ./ pathloss;
-    % ? initialize \boldsymbol{p}_q by uniform power allocation over subbands of a given user (the power across users depend on pathloss)
-    frequencyWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
-    % the covariance matrices for all users are initialized equal
-    % frequencyWeightMatrix = frequencyWeight(:, 1) * frequencyWeight(:, 1)';
+    % % ? initialize \boldsymbol{p}_q by uniform power allocation over subbands of a given user (the power across users depend on pathloss)
+    % frequencyWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
+
+    frequencyWeight = squeeze(sum(channel)) / norm(squeeze(sum(channel)), 'fro') * sqrt(powerBudget);
 
     % \boldsymbol{M}'_{k}
     shiftMatrix = cell(1, nSubbands);
@@ -60,6 +60,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
 
     isConverged = false;
     counter = 0;
+    maxTarget = 0;
     % \boldsymbol{A}_0
     termA0 = diag(- 3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
@@ -109,33 +110,45 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
                 frequencyWeightFactor{iUser} = cholcov(frequencyWeightMatrix_(:, :, iUser))';
             end
             % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
+             coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
             for iUser = 1 : nUsers
                 for jUser = 1 : nUsers
-                    coefficient(iUser, 1 + (jUser - 1) * frequencyWeightRank(jUser) ^ 2 : jUser * frequencyWeightRank(jUser) ^ 2) = reshape((frequencyWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * frequencyWeightFactor{jUser}).', 1, []);
+                    coefficient(iUser, 1 + sum(frequencyWeightRank(1 : jUser - 1) .^ 2) : sum(frequencyWeightRank(1 : jUser) .^ 2)) = reshape((frequencyWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * frequencyWeightFactor{jUser}).', 1, []);
                 end
             end
             % obtain an orthonormal basis for the null space of the coefficient matrix
             delta = null(coefficient);
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             deltaInstance = cell(nUsers, 1);
+            dominantEigenvalue = zeros(nUsers, 1);
             for iUser = 1 : nUsers
-                deltaInstance{iUser} = reshape(delta(1 + (iUser - 1) * frequencyWeightRank(iUser) ^ 2 : iUser * frequencyWeightRank(iUser) ^ 2, 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
+                deltaInstance{iUser} = reshape(delta(1 + sum(frequencyWeightRank(1 : iUser - 1) .^ 2) : sum(frequencyWeightRank(1 : iUser) .^ 2), 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
                 % ensure positive semidefiniteness
                 deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
                 % calculate eigenvalues of delta
-                d = real(eig(deltaInstance{iUser}));
-                % obtain the ones with largest magnitude
-                dominantEigenvalue = d(abs(d) == max(abs(d)));
+                d = (eig(deltaInstance{iUser}));
+                % obtain the ones with largest magnitude for each user
+                dMaxMagnitude = d(abs(d) == max(abs(d)));
+                % there can be multiple candidates and we only use the minimum one (the negative one if there is both positive and negative)
+                dominantEigenvalue(iUser) = min(dMaxMagnitude);
                 clearvars d;
+            end
+            % find the one with largest magnitude among users
+            dominantEigenvalue = dominantEigenvalue(abs(dominantEigenvalue) == max(abs(dominantEigenvalue)));
+            dominantEigenvalue = min(dominantEigenvalue);
+
+            for iUser = 1 : nUsers
                 % there can be multiple candidates and we only use the minimum one
-                frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / min(dominantEigenvalue) * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
+                frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / dominantEigenvalue * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
                 % ! ensure positive semidefiniteness
                 [v, d] = eig(frequencyWeightMatrix_(:, :, iUser));
-                d(d < 0) = 0;
+%                 d = real(d);
+                d(d < eps) = eps;
                 frequencyWeightMatrix_(:, :, iUser) = v * d * v';
-                clearvars v d;
+%                 frequencyWeightMatrix_(:, :, iUser) = (frequencyWeightMatrix_(:, :, iUser) + frequencyWeightMatrix_(:, :, iUser)') / 2;
+%                 clearvars v d;
             end
+
             % update matrix rank
             for iUser = 1 : nUsers
                 frequencyWeightRank(iUser) = rank(frequencyWeightMatrix_(:, :, iUser));
@@ -150,42 +163,33 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             end
         end
 
+        % Update target function
+        target = zeros(nUsers, 1);
+        for iUser = 1 : nUsers
+            target(iUser) = real(trace(termA1{iUser} * frequencyWeightMatrix_(:, :, iUser)) + termBarC(iUser));
+        end
+        maxTarget_ = max(target);
+
         % test convergence
-        if (norm(frequencyWeightMatrix_ - frequencyWeightMatrix, 'fro')) / norm(frequencyWeightMatrix_, 'fro') <= tolerance || counter >= 1e2
+        temp = (norm(maxTarget_ - maxTarget)) / norm(maxTarget_)
+        if (norm(maxTarget_ - maxTarget)) / norm(maxTarget_) <= tolerance || counter >= 1e2
             isConverged = true;
         end
         frequencyWeightMatrix = frequencyWeightMatrix_;
+        maxTarget = maxTarget_;
 
     end
 
-    % decompose waveform matrix for the waveform vector
-    frequencyWeight = cholcov(frequencyWeightMatrix)';
-
+    % decompose beamforming matrix for the beamforming vector
+    for iUser = 1 : nUsers
+        frequencyWeight(:, iUser) = cholcov(frequencyWeightMatrix(:, :, iUser))';
+    end
 
     % \bar{\boldsymbol{s}}_n
     normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
     % \boldsymbol{s}_{\text{asym}}
     waveform = sqrt(powerBudget) * normalizedWaveform / norm(normalizedWaveform, 'fro');
     % \sum v_{\text{out}}, v\{\text{out}, q}
-    [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel);
-
-    minVoltage = 1;
-
-    % % v_{\text{out}, q}
-    % userVoltage = zeros(1, nUsers);
-    % for iUser = 1 : nUsers
-    %     userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
-    %     if nSubbands > 1
-    %         for iSubband = 1 : nSubbands - 1
-    %             userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
-    %         end
-    %     end
-    % end
-    % userVoltage = real(userVoltage);
-    % minVoltage = min(userVoltage);
-    % % \boldsymbol{s_n}
-    % waveform = reshape(waveform, [nTxs, nSubbands]);
-    % % \sum v_{\text{out}}
-    % sumVoltage = sum(userVoltage);
+    [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end
