@@ -92,7 +92,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         waveformRank = rank(waveformMatrix_);
         while waveformRank ^ 2 > nUsers
             % decompose waveform matrix as a product of a matrix V and its Hermitian
-            waveformFactor = cholcov(waveformMatrix_)';
+            waveformFactor = decompose(waveformMatrix_);
             % flatten trace equations to standard linear equations
             coefficient = zeros(nUsers, waveformRank ^ 2);
             for iUser = 1 : nUsers
@@ -105,18 +105,16 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             % ensure positive semidefiniteness
             delta = (delta + delta') / 2;
             % calculate eigenvalues of delta
-            d = real(eig(delta));
-            % obtain the ones with largest magnitude
-            dominantEigenvalue = d(abs(d) == max(abs(d)));
-            % there can be multiple candidates and we only use the minimum one (the negative one if there is both positive and negative)
-            dominantEigenvalue = min(dominantEigenvalue);
+            d = eig(delta);
+            % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+            dominantEigenvalue = min(d(abs(d) == max(abs(d))));
             clearvars d;
             waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / dominantEigenvalue * delta) * waveformFactor';
-            % ! ensure positive semidefiniteness
-            [v, d] = eig(waveformMatrix_);
-            d(d < 0) = 0;
-            waveformMatrix_ = v * d * v';
-            clearvars v d;
+            % % ! ensure positive semidefiniteness
+            % [v, d] = eig(waveformMatrix_);
+            % d(d < 0) = 0;
+            % waveformMatrix_ = v * d * v';
+            % clearvars v d;
             % update matrix rank
             waveformRank = rank(waveformMatrix_);
         end
