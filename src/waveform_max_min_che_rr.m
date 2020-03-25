@@ -122,21 +122,25 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             deltaInstance = cell(nUsers, 1);
             dominantEigenvalue = zeros(nUsers, 1);
             for iUser = 1 : nUsers
-                deltaInstance{iUser} = reshape(delta(1 + sum(frequencyWeightRank(1 : iUser - 1) .^ 2) : sum(frequencyWeightRank(1 : iUser) .^ 2), 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
-                % ensure positive semidefiniteness
-                deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
-                % calculate eigenvalues of delta
-                d = (eig(deltaInstance{iUser}));
-                % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
-                dominantEigenvalue(iUser) = min(d(abs(d) == max(abs(d))));
-                clearvars d;
+                if frequencyWeightRank(iUser) ~= 1
+                    deltaInstance{iUser} = reshape(delta(1 + sum(frequencyWeightRank(1 : iUser - 1) .^ 2) : sum(frequencyWeightRank(1 : iUser) .^ 2), 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
+                    % ensure positive semidefiniteness
+                    deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
+                    % calculate eigenvalues of delta
+                    d = eig(deltaInstance{iUser});
+                    % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+                    dominantEigenvalue(iUser) = min(d(abs(d) == max(abs(d))));
+                    clearvars d;
+                end
             end
             % find the one with largest magnitude among users
             dominantEigenvalue = min(dominantEigenvalue(abs(dominantEigenvalue) == max(abs(dominantEigenvalue))));
 
             for iUser = 1 : nUsers
-                % there can be multiple candidates and we only use the minimum one
-                frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / dominantEigenvalue * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
+                % update beamforming matrices
+                if frequencyWeightRank(iUser) ~= 1
+                    frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / dominantEigenvalue * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
+                end
                 % % ! ensure positive semidefiniteness
                 % [v, d] = eig(frequencyWeightMatrix_(:, :, iUser));
                 % d = real(d);
