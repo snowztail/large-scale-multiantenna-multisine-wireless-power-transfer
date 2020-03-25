@@ -107,10 +107,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         while sum(frequencyWeightRank .^ 2) > nUsers
             for iUser = 1 : nUsers
                 % decompose weight matrix as a product of a matrix V and its Hermitian
-                frequencyWeightFactor{iUser} = cholcov(frequencyWeightMatrix_(:, :, iUser))';
+                frequencyWeightFactor{iUser} = decompose(frequencyWeightMatrix_(:, :, iUser));
             end
             % flatten trace equations to standard linear equations
-             coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
+            coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
             for iUser = 1 : nUsers
                 for jUser = 1 : nUsers
                     coefficient(iUser, 1 + sum(frequencyWeightRank(1 : jUser - 1) .^ 2) : sum(frequencyWeightRank(1 : jUser) .^ 2)) = reshape((frequencyWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * frequencyWeightFactor{jUser}).', 1, []);
@@ -127,30 +127,23 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
                 deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
                 % calculate eigenvalues of delta
                 d = (eig(deltaInstance{iUser}));
-                % obtain the ones with largest magnitude for each user
-                dMaxMagnitude = d(abs(d) == max(abs(d)));
-                % there can be multiple candidates and we only use the minimum one (the negative one if there is both positive and negative)
-                dominantEigenvalue(iUser) = min(dMaxMagnitude);
+                % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+                dominantEigenvalue(iUser) = min(d(abs(d) == max(abs(d))));
                 clearvars d;
             end
             % find the one with largest magnitude among users
-            dominantEigenvalue = dominantEigenvalue(abs(dominantEigenvalue) == max(abs(dominantEigenvalue)));
-            dominantEigenvalue = min(dominantEigenvalue);
+            dominantEigenvalue = min(dominantEigenvalue(abs(dominantEigenvalue) == max(abs(dominantEigenvalue))));
 
             for iUser = 1 : nUsers
                 % there can be multiple candidates and we only use the minimum one
                 frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / dominantEigenvalue * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
-                % ! ensure positive semidefiniteness
-                [v, d] = eig(frequencyWeightMatrix_(:, :, iUser));
-%                 d = real(d);
-                d(d < eps) = eps;
-                frequencyWeightMatrix_(:, :, iUser) = v * d * v';
-%                 frequencyWeightMatrix_(:, :, iUser) = (frequencyWeightMatrix_(:, :, iUser) + frequencyWeightMatrix_(:, :, iUser)') / 2;
-%                 clearvars v d;
-            end
-
-            % update matrix rank
-            for iUser = 1 : nUsers
+                % % ! ensure positive semidefiniteness
+                % [v, d] = eig(frequencyWeightMatrix_(:, :, iUser));
+                % d = real(d);
+                % d(d < 0) = 0;
+                % frequencyWeightMatrix_(:, :, iUser) = v * d * v';
+                % frequencyWeightMatrix_(:, :, iUser) = (frequencyWeightMatrix_(:, :, iUser) + frequencyWeightMatrix_(:, :, iUser)') / 2;
+                % clearvars v d;
                 frequencyWeightRank(iUser) = rank(frequencyWeightMatrix_(:, :, iUser));
             end
         end
