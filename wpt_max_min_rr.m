@@ -17,17 +17,21 @@ for iUser = 1 : length(Variable.nUsers)
 end
 minVoltageRr = mean(minVoltageRr, 2);
 minVoltageRand = squeeze(mean(minVoltageRand, 2));
-save('data/wpt_max_min_rr.mat');
+load('data/wpt_max_min_rr.mat');
 %% Result
 figure('Name', sprintf('Average minimum output voltage of Max-Min-RR and Max-Min-Rand with M = 4 and R = 4 for K = 2 and 3'));
 for iUser = 1: length(Variable.nUsers)
     subplot(length(Variable.nUsers), 1, iUser);
-    stem(1e3 * minVoltageRr, 'b');
+    stem(1, 1e3 * minVoltageRr(iUser), 'b');
     hold on;
-    stem(1e3 * minVoltageRand, 'r');
-    legend('Max-Min-RR', 'Max-Min-Rand');
+    stem(2 : 1 + length(Variable.nCandidates), 1e3 * minVoltageRand(iUser, :), 'r');
+    legend('Max-Min-RR', 'Max-Min-Rand', 'location', 'nw');
     grid on;
-    ylabel('Average minimum v_{out} [mV]')
+    xticks(1 : 1 + length(Variable.nCandidates));
+    xticklabels(string([0 Variable.nCandidates]));
+    ylim(1e3 * [min(minVoltageRand(iUser, :)), max(minVoltageRand(iUser, :))])
+    xlabel('Number of random feasible solutions T');
+    ylabel('Average minimum v_{out} [mV]');
     title(sprintf('K = %d', Variable.nUsers(iUser)));
 end
 savefig('results/wpt_su_comparison.fig');
