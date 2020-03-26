@@ -105,7 +105,8 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
     candidateWaveform = cell(nCandidates, 1);
     candidateTarget = zeros(nCandidates, nUsers);
     for iCandidate = 1 : nCandidates
-        candidateWaveform{iCandidate} = v * d .^ (1 / 2) * (randn(nTxs * nSubbands, 1) .* (exp(1i * 2 * pi * rand(nTxs * nSubbands, 1))));
+        % candidateWaveform{iCandidate} = v * d .^ (1 / 2) * (sqrt(rand(nTxs * nSubbands, 1)) .* (exp(1i * 2 * pi * rand(nTxs * nSubbands, 1))));
+        candidateWaveform{iCandidate} = v * d .^ (1 / 2) * (exp(1i * 2 * pi * rand(nTxs * nSubbands, 1)));
         candidateWaveformMatrix = candidateWaveform{iCandidate} * candidateWaveform{iCandidate}';
 
         % Update \boldsymbol{t}_{q, k}
