@@ -17,7 +17,7 @@ for iUser = 1 : length(Variable.nUsers)
 end
 minVoltageRr = mean(minVoltageRr, 2);
 minVoltageRand = squeeze(mean(minVoltageRand, 2));
-load('data/wpt_max_min_rr.mat');
+save('data/wpt_max_min_rr.mat');
 %% Result
 figure('Name', sprintf('Average minimum output voltage of Max-Min-RR and Max-Min-Rand with M = 4 and R = 4 for K = 2 and 3'));
 for iUser = 1: length(Variable.nUsers)
@@ -34,4 +34,4 @@ for iUser = 1: length(Variable.nUsers)
     ylabel('Average minimum v_{out} [mV]');
     title(sprintf('K = %d', Variable.nUsers(iUser)));
 end
-savefig('results/wpt_su_comparison.fig');
+savefig('results/wpt_max_min_rr.fig');
