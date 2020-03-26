@@ -85,14 +85,12 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             % \boldsymbol{X}
             variable highRankFrequencyWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
             target = cvx(zeros(1, nUsers));
-            sumPower = 0;
             for iUser = 1 : nUsers
                 target(iUser) = trace(termA1{iUser} * highRankFrequencyWeightMatrix(:, :, iUser)) + termBarC(iUser);
-                sumPower = sumPower + pathloss(iUser) * trace(highRankFrequencyWeightMatrix(:, :, iUser));
             end
             minimize(max(target));
             subject to
-                sumPower = 1;
+                sum(pathloss(iUser) * trace(highRankFrequencyWeightMatrix(:, :, iUser))) == 1;
         cvx_end
         [~, userIndex] = max(target);
 
@@ -168,8 +166,8 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         maxTarget_ = max(target);
 
         % test convergence
-        temp = (norm(maxTarget_ - maxTarget)) / norm(maxTarget_)
-        if (norm(maxTarget_ - maxTarget)) / norm(maxTarget_) <= tolerance || counter >= 1e2
+        temp = abs(maxTarget_ - maxTarget) / abs(maxTarget_)
+        if abs(maxTarget_ - maxTarget) / abs(maxTarget_) <= tolerance || counter >= 1e2
             isConverged = true;
         end
         frequencyWeightMatrix = frequencyWeightMatrix_;
