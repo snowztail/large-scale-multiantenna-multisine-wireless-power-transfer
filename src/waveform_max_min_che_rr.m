@@ -85,12 +85,14 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             % \boldsymbol{X}
             variable highRankFrequencyWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
             target = cvx(zeros(1, nUsers));
+            traceSum = 0;
             for iUser = 1 : nUsers
                 target(iUser) = trace(termA1{iUser} * highRankFrequencyWeightMatrix(:, :, iUser)) + termBarC(iUser);
+                traceSum = traceSum + pathloss(iUser) * trace(highRankFrequencyWeightMatrix(:, :, iUser));
             end
             minimize(max(target));
             subject to
-                sum(pathloss(iUser) * trace(highRankFrequencyWeightMatrix(:, :, iUser))) == 1;
+                traceSum == 1;
         cvx_end
         [~, userIndex] = max(target);
 
@@ -177,7 +179,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
 
     % decompose beamforming matrix for the beamforming vector
     for iUser = 1 : nUsers
-        frequencyWeight(:, iUser) = cholcov(frequencyWeightMatrix(:, :, iUser))';
+        frequencyWeight(:, iUser) = decompose(frequencyWeightMatrix(:, :, iUser));
     end
 
     % \bar{\boldsymbol{s}}_n
