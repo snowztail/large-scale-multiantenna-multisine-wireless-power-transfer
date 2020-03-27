@@ -29,7 +29,7 @@ for iUser = 1: length(Variable.nUsers)
     grid on;
     xticks(1 : 1 + length(Variable.nCandidates));
     xticklabels(string([0 Variable.nCandidates]));
-    ylim(1e3 * [min(minVoltageRand(iUser, :)), max(minVoltageRand(iUser, :))])
+    ylim(1e3 * [min([minVoltageRr(iUser), minVoltageRand(iUser, :)]), max([minVoltageRr(iUser), minVoltageRand(iUser, :)])])
     xlabel('Number of random feasible solutions T');
     ylabel('Average minimum v_{out} [mV]');
     title(sprintf('K = %d', Variable.nUsers(iUser)));

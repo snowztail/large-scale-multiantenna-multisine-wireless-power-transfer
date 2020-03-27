@@ -136,7 +136,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     end
 
     % decompose waveform matrix for the waveform vector
-    waveform = cholcov(waveformMatrix)';
+    waveform = decompose(waveformMatrix);
 
     % v_{\text{out}, q}
     userVoltage = zeros(1, nUsers);
