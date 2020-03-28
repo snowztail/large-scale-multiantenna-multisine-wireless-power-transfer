@@ -104,28 +104,73 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         end
         % frequencyWeightRank = sum(frequencyWeightRank);
         frequencyWeightFactor = cell(nUsers, 1);
+        deltaRank = frequencyWeightRank;
         while sum(frequencyWeightRank .^ 2) > nUsers
             for iUser = 1 : nUsers
                 % decompose weight matrix as a product of a matrix V and its Hermitian
                 frequencyWeightFactor{iUser} = decompose(frequencyWeightMatrix_(:, :, iUser));
             end
-            % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
+%             % flatten trace equations to standard linear equations
+%             coefficient = zeros(nUsers, sum(frequencyWeightRank .^ 2));
+%             for iUser = 1 : nUsers
+%                 for jUser = 1 : nUsers
+%                     coefficient(iUser, 1 + sum(frequencyWeightRank(1 : jUser - 1) .^ 2) : sum(frequencyWeightRank(1 : jUser) .^ 2)) = reshape((frequencyWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * frequencyWeightFactor{jUser}).', 1, []);
+%                 end
+%             end
+%             % obtain an orthonormal basis for the null space of the coefficient matrix
+%             delta = null(coefficient);
+%             % nonzero solution can be obtained as a linear combination of null space basis vectors
+%             deltaInstance = cell(nUsers, 1);
+%             % dominantEigenvalue = zeros(nUsers, 1);
+%             deltaRank = zeros(nUsers, 1);
+%             for iUser = 1 : nUsers
+%                 deltaInstance{iUser} = reshape(delta(1 + sum(frequencyWeightRank(1 : iUser - 1) .^ 2) : sum(frequencyWeightRank(1 : iUser) .^ 2), 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
+%                 % ensure positive semidefiniteness
+%                 deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
+%                 % prioritize users with high-rank delta
+%                 deltaRank(iUser) = rank(deltaInstance{iUser});
+%                 % % calculate eigenvalues of delta
+%                 % d = eig(deltaInstance{iUser});
+%                 % % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+%                 % dominantEigenvalue(iUser) = min(d(abs(d) == max(abs(d))));
+%                 % clearvars d;
+%             end
+%             [~, deltaIndex] = max(deltaRank);
+%             % calculate eigenvalues of delta
+%             d = eig(deltaInstance{deltaIndex});
+%             % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+%             dominantEigenvalue = min(d(abs(d) == max(abs(d))));
+% 
+%             for iUser = 1 : nUsers
+%                 % update beamforming matrices
+%                 frequencyWeightMatrix_(:, :, iUser) = frequencyWeightFactor{iUser} * (eye(frequencyWeightRank(iUser)) - 1 / dominantEigenvalue * deltaInstance{iUser}) * frequencyWeightFactor{iUser}';
+%                 % % ! ensure positive semidefiniteness
+%                 % [v, d] = eig(frequencyWeightMatrix_(:, :, iUser));
+%                 % d = real(d);
+%                 % d(d < 0) = 0;
+%                 % frequencyWeightMatrix_(:, :, iUser) = v * d * v';
+%                 % frequencyWeightMatrix_(:, :, iUser) = (frequencyWeightMatrix_(:, :, iUser) + frequencyWeightMatrix_(:, :, iUser)') / 2;
+%                 % clearvars v d;
+%                 frequencyWeightRank(iUser) = rank(frequencyWeightMatrix_(:, :, iUser));
+%             end
+            
+%%
+            deltaInit = cell(nUsers, 1);
             for iUser = 1 : nUsers
-                for jUser = 1 : nUsers
-                    coefficient(iUser, 1 + sum(frequencyWeightRank(1 : jUser - 1) .^ 2) : sum(frequencyWeightRank(1 : jUser) .^ 2)) = reshape((frequencyWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * frequencyWeightFactor{jUser}).', 1, []);
-                end
+                deltaInit{iUser} = vec(eye(frequencyWeightRank(iUser)));
             end
-            % obtain an orthonormal basis for the null space of the coefficient matrix
-            delta = null(coefficient);
+            deltaInit = cat(1, deltaInit{:});
+
+            % (deltaVector, factor, term, pathloss, nSubbands, nUsers, userIndex, deltaRank)
+            % options = optimset('Algorithm', 'levenberg-marquardt', 'Display', 'off');
+            options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
+            delta = fsolve(@(delta) equations(delta, frequencyWeightFactor, termA1, pathloss, nSubbands, nUsers, userIndex, frequencyWeightRank), deltaInit, options);
+
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             deltaInstance = cell(nUsers, 1);
             % dominantEigenvalue = zeros(nUsers, 1);
-            deltaRank = zeros(nUsers, 1);
             for iUser = 1 : nUsers
                 deltaInstance{iUser} = reshape(delta(1 + sum(frequencyWeightRank(1 : iUser - 1) .^ 2) : sum(frequencyWeightRank(1 : iUser) .^ 2), 1), [frequencyWeightRank(iUser), frequencyWeightRank(iUser)]);
-                % ensure positive semidefiniteness
-                deltaInstance{iUser} = (deltaInstance{iUser} + deltaInstance{iUser}') / 2;
                 % prioritize users with high-rank delta
                 deltaRank(iUser) = rank(deltaInstance{iUser});
                 % % calculate eigenvalues of delta
@@ -162,14 +207,14 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
                 auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * frequencyWeightMatrix_(:, :, iUser));
             end
         end
-
+        
         % Update target function
         target = zeros(nUsers, 1);
         for iUser = 1 : nUsers
             target(iUser) = real(trace(termA1{iUser} * frequencyWeightMatrix_(:, :, iUser)) + termBarC(iUser));
         end
         maxTarget_ = max(target);
-
+        
         % test convergence
         temp = abs(maxTarget_ - maxTarget) / abs(maxTarget_)
         if abs(maxTarget_ - maxTarget) / abs(maxTarget_) <= tolerance || counter >= 1e2
@@ -177,13 +222,62 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         end
         frequencyWeightMatrix = frequencyWeightMatrix_;
         maxTarget = maxTarget_;
+        
+        
+        
+        
+        %%
+        
+        
+        
+
+        % Update p_vec_opt_mat
+        
+%         for IndUser = 1:NumUsers
+%             X_opt_Rank1 = X_opt_RankConstrained_mats(:, :, IndUser);
+%             [V_X_opt_Rank1, D_X_opt_Rank1, ~] = svd(X_opt_Rank1);
+% %             p_vec_opt_mat(:, IndUser) = V_X_opt_Rank1(:, 1).*sqrt(D_X_opt_Rank1(1,1));
+%             p_vec_opt_mat(:, IndUser) = decompose(X_opt_Rank1);
+%         end
+        
+
+
+%         XErrorSqr = norm(frequencyWeight_ - frequencyWeight, 'fro')^2;
+%         XSqr = norm(frequencyWeight_, 'fro')^2;
+% 
+%         RelativeError = sqrt(XErrorSqr)/sqrt(XSqr);
+%         if RelativeError <= tolerance
+%             isConverged = true;
+%         end
+%         
+%         
+%         % test convergence
+%         temp = (norm(frequencyWeight_ - frequencyWeight, 'fro')) / norm(frequencyWeight_, 'fro')
+%         if (norm(frequencyWeight_ - frequencyWeight, 'fro')) / norm(frequencyWeight_, 'fro') <= tolerance
+%             isConverged = true;
+%         end
+%         frequencyWeight = frequencyWeight_;
+
+        % test convergence
+%         temp = abs(maxTarget_ - maxTarget) / abs(maxTarget_)
+%         if abs(maxTarget_ - maxTarget) / abs(maxTarget_) <= tolerance || counter >= 1e2
+%             isConverged = true;
+%         end
+%         frequencyWeightMatrix = frequencyWeightMatrix_;
+%         maxTarget = maxTarget_;
 
     end
-
-    % decompose beamforming matrix for the beamforming vector
+    % obtain the rank-1 beamforming vector
     for iUser = 1 : nUsers
-        frequencyWeight(:, iUser) = decompose(frequencyWeightMatrix(:, :, iUser));
+        [v, d] = svd(frequencyWeightMatrix(:, :, iUser));
+        frequencyWeight(:, iUser) = v(:, 1) * sqrt(d(1));
     end
+    
+%     % decompose beamforming matrix for the beamforming vector
+%     for iUser = 1 : nUsers
+%         frequencyWeight(:, iUser) = decompose(frequencyWeightMatrix(:, :, iUser));
+%     end
+
 
     % \bar{\boldsymbol{s}}_n
     normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
