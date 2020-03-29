@@ -29,11 +29,10 @@ figure('Name', sprintf('Average output voltage as a function of (M, N) with K = 
 for iTx = 1: length(Variable.nTxs)
     subplot(length(Variable.nTxs), 1, iTx);
     bar(1e3 * [voltageSu(iTx, :); voltageCheWsum(iTx, :); voltageUp(iTx, :); voltageAss(iTx, :)]');
-    set(gca, 'xticklabel', num2cell(Variable.nSubbands));
+    label = [repelem(Variable.nTxs(iTx), length(Variable.nSubbands)); Variable.nSubbands];
+    set(gca, 'xticklabel', display_coordinate(label));
     grid on;
     legend('SU WPT', 'CHE WSum', 'UP', 'ASS', 'location', 'nw');
-    xlabel('Number of tones');
     ylabel('Average v_{out} [mV]')
-    title(sprintf('M = %d', Variable.nTxs(iTx)));
 end
 savefig('results/wpt_su_comparison.fig');
