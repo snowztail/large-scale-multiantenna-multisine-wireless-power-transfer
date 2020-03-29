@@ -93,17 +93,24 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         while waveformRank ^ 2 > nUsers
             % decompose waveform matrix as a product of a matrix V and its Hermitian
             waveformFactor = decompose(waveformMatrix_);
-            % flatten trace equations to standard linear equations
-            coefficient = zeros(nUsers, waveformRank ^ 2);
-            for iUser = 1 : nUsers
-                coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
-            end
-            % obtain an orthonormal basis for the null space of the coefficient matrix
-            delta = null(coefficient);
-            % nonzero solution can be obtained as a linear combination of null space basis vectors
-            delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
-            % ensure positive semidefiniteness
-            delta = (delta + delta') / 2;
+
+            % % flatten trace equations to standard linear equations
+            % coefficient = zeros(nUsers, waveformRank ^ 2);
+            % for iUser = 1 : nUsers
+            %     coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
+            % end
+            % % obtain an orthonormal basis for the null space of the coefficient matrix
+            % delta = null(coefficient);
+            % % nonzero solution can be obtained as a linear combination of null space basis vectors
+            % delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
+            % % ensure positive semidefiniteness
+            % delta = (delta + delta') / 2;
+
+            deltaInit = eye(waveformRank);
+
+            options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
+            delta = fsolve(@(delta) rr_equations(delta, waveformFactor, termA1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
+
             % calculate eigenvalues of delta
             d = eig(delta);
             % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
@@ -135,8 +142,12 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
 
     end
 
-    % decompose waveform matrix for the waveform vector
-    waveform = decompose(waveformMatrix);
+    % obtain the rank-1 beamforming vector
+    [v, d] = svd(waveformMatrix);
+    waveform = v(:, 1) * sqrt(d(1));
+
+    % % decompose waveform matrix for the waveform vector
+    % waveform = decompose(waveformMatrix);
 
     % v_{\text{out}, q}
     userVoltage = zeros(1, nUsers);

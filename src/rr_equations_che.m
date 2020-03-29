@@ -1,4 +1,4 @@
-function [value] = equations(deltaVector, factor, term, pathloss, nSubbands, nUsers, userIndex, precoderRank)
+function [value] = rr_equations_che(deltaVector, component, term, pathloss, nSubbands, nUsers, userIndex, precoderRank)
 
 
 
@@ -12,7 +12,7 @@ function [value] = equations(deltaVector, factor, term, pathloss, nSubbands, nUs
     value1 = zeros(nUsers, 1);
     for iUser = 1 : nUsers
         if iUser ~= userIndex
-            value1(iUser) = real(trace(factor{iUser}' * term{iUser} * factor{iUser} * delta{iUser})) - real(trace(factor{userIndex}' * term{userIndex} * factor{userIndex} * delta{userIndex}));
+            value1(iUser) = real(trace(component{iUser}' * term{iUser} * component{iUser} * delta{iUser})) - real(trace(component{userIndex}' * term{userIndex} * component{userIndex} * delta{userIndex}));
         end
     end
     value1(userIndex) = [];
@@ -20,7 +20,7 @@ function [value] = equations(deltaVector, factor, term, pathloss, nSubbands, nUs
     % trace constraints on transmit power
     value2 = 0;
     for iUser = 1 : nUsers
-        value2 = value2 + real(trace(factor{iUser}' * (pathloss(iUser) * eye(nSubbands)) * factor{iUser} * delta{iUser}));
+        value2 = value2 + real(trace(component{iUser}' * (pathloss(iUser) * eye(nSubbands)) * component{iUser} * delta{iUser}));
     end
 
     value3 = zeros(length(deltaVector), 1);

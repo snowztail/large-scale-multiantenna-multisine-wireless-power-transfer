@@ -161,10 +161,16 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             end
             deltaInit = cat(1, deltaInit{:});
 
+%             deltaInit = cell(nUsers, 1);
+%             for iUser = 1 : nUsers
+%                 deltaInit{iUser} = (eye(frequencyWeightRank(iUser)));
+%             end
+
+
             % (deltaVector, factor, term, pathloss, nSubbands, nUsers, userIndex, deltaRank)
             % options = optimset('Algorithm', 'levenberg-marquardt', 'Display', 'off');
             options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
-            delta = fsolve(@(delta) equations(delta, frequencyWeightFactor, termA1, pathloss, nSubbands, nUsers, userIndex, frequencyWeightRank), deltaInit, options);
+            delta = fsolve(@(delta) rr_equations_che(delta, frequencyWeightFactor, termA1, pathloss, nSubbands, nUsers, userIndex, frequencyWeightRank), deltaInit, options);
 
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             deltaInstance = cell(nUsers, 1);
