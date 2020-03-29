@@ -33,5 +33,5 @@ label = [repelem(Variable.nTxs, length(Variable.nSubbands) * length(Variable.nUs
 set(gca, 'XTick', 1 : length(Variable.nTxs) * length(Variable.nSubbands) * length(Variable.nUsers), 'xticklabel', display_coordinate(label));
 grid on;
 legend('Max-Min-Rand', 'CHE Max-Min-RR', 'CHE Max-Min-Rand', 'location', 'nw');
-ylabel('Average v_{out} [mV]')
+ylabel('Average minimum v_{out} [mV]')
 savefig('results/wpt_max_min_comparison.fig');
