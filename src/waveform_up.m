@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, userVoltage] = waveform_up(beta2, beta4, powerBudget, channel)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, beta4, powerBudget, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -12,6 +12,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_up(beta2, beta4, powerBu
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %   - userVoltage [v_{\text{out}, q}]: individual user voltages
+    %   - minVoltage: minimum user voltage
     %
     % Comment(s):
     %   - for single-user and multi-user MISO systems
@@ -31,6 +32,6 @@ function [waveform, sumVoltage, userVoltage] = waveform_up(beta2, beta4, powerBu
     % \boldsymbol{s}_n
     waveform = frequencyWeight * spatialPrecoder;
     % \sum v_{\text{out}}, v\{\text{out}, q}
-    [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel);
+    [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end
