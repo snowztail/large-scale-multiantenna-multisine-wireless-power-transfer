@@ -7,8 +7,8 @@ eirp = db2pow(36 - 30);
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 distance = 10;
-pathlossExponent = 2;
-pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
+
+[pathloss] = large_scale_fading(distance);
 nRealizations = 2e2;
 fadingType = 'selective';
 %% Harvester

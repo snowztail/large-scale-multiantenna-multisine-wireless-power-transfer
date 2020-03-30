@@ -4,13 +4,13 @@ voltage = zeros(length(Variable.nTxs), length(Variable.distance), nRealizations)
 for iCase = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iCase);
     nSubbands = Variable.nSubbands(iCase);
-    carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
+    [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
     for iDistance = 1 : length(Variable.distance)
         distance = Variable.distance(iDistance);
-        pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
+        [pathloss] = large_scale_fading(distance);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-            [~, voltage(iCase, iDistance, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
+            [~, voltage(iCase, iDistance, iRealization)] = waveform_su(beta2, beta4, txPower, channel, tolerance);
         end
     end
 end

@@ -5,7 +5,7 @@ nCandidates = 50;
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 distance = 10;
-pathlossExponent = 2;
+
 nRealizations = 1;
 fadingType = 'selective';
 %% Harvester

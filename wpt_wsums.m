@@ -8,11 +8,11 @@ for iUser = 1 : length(Variable.nUsers)
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
     for iSubband = 1 : length(Variable.nSubbands)
         nSubbands = Variable.nSubbands(iSubband);
-        carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
+        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-            [~, voltageWsum(iUser, iSubband, iRealization)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
-            [~, voltageWSums(iUser, iSubband, iRealization)] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight);
+            [~, voltageWsum(iUser, iSubband, iRealization)] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight);
+            [~, voltageWSums(iUser, iSubband, iRealization)] = waveform_wsums(beta2, beta4, txPower, channel, tolerance, weight);
         end
     end
 end

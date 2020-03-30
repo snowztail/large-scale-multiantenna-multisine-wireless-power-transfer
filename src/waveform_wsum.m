@@ -1,11 +1,11 @@
-function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
@@ -29,10 +29,10 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, power
     % Author & Date: Yang (i@snowztail.com) - 10 Mar 20
 
 
-    % single receive antenna
+
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? initialize \boldsymbol{s} by uniform power allocation and omidirectional beamforming
-    waveform = sqrt(powerBudget / nTxs / nSubbands) * ones(nTxs, nSubbands);
+    waveform = sqrt(txPower / nTxs / nSubbands) * ones(nTxs, nSubbands);
     % \boldsymbol{X}
     waveformMatrix = waveform(:) * waveform(:)';
 
@@ -69,7 +69,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, power
         % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
         % \boldsymbol{x}^{\star}
         [v, d] = eig(termA1);
-        waveform = sqrt(powerBudget) * v(:, diag(d) == min(diag(d)));
+        waveform = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
         waveformMatrix_ = waveform * waveform';
@@ -87,20 +87,21 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, power
         end
         waveformMatrix = waveformMatrix_;
     end
-    % v_{\text{out}, q}
-    userVoltage = zeros(1, nUsers);
-    for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
-        if nSubbands > 1
-            for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
-            end
-        end
-    end
-    userVoltage = real(userVoltage);
+%     % v_{\text{out}, q}
+%     userVoltage = zeros(1, nUsers);
+%     for iUser = 1 : nUsers
+%         userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
+%         if nSubbands > 1
+%             for iSubband = 1 : nSubbands - 1
+%                 userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
+%             end
+%         end
+%     end
+%     userVoltage = real(userVoltage);
     % \boldsymbol{s_n}
     waveform = reshape(waveform, [nTxs, nSubbands]);
     % \sum v_{\text{out}}
-    sumVoltage = sum(userVoltage);
+%     sumVoltage = sum(userVoltage);
+    [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

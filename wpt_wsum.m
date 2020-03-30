@@ -4,14 +4,14 @@ voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizatio
 voltageWsum = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
 for iTx = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iTx);
-    powerBudget = eirp / nTxs;
+    txPower = eirp / nTxs;
     for iSubband = 1 : length(Variable.nSubbands)
         nSubbands = Variable.nSubbands(iSubband);
-        carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
+        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-            [~, voltageSu(iTx, iSubband, iRealization)] = waveform_su(beta2, beta4, powerBudget, channel, tolerance);
-            [~, voltageWsum(iTx, iSubband, iRealization)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
+            [~, voltageSu(iTx, iSubband, iRealization)] = waveform_su(beta2, beta4, txPower, channel, tolerance);
+            [~, voltageWsum(iTx, iSubband, iRealization)] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight);
         end
     end
 end

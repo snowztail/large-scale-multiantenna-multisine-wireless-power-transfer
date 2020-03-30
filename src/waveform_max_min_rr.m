@@ -1,11 +1,11 @@
-function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
@@ -28,10 +28,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     % Author & Date: Yang (i@snowztail.com) - 17 Mar 20
 
 
-    % single receive antenna
+
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? initialize \boldsymbol{s} by uniform power allocation and omidirectional beamforming
-    waveform = sqrt(powerBudget / nTxs / nSubbands) * ones(nTxs, nSubbands);
+    waveform = sqrt(txPower / nTxs / nSubbands) * ones(nTxs, nSubbands);
     % \boldsymbol{X}
     waveformMatrix = waveform(:) * waveform(:)';
 
@@ -83,7 +83,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             end
             minimize(max(target));
             subject to
-                trace(highRankWaveformMatrix) <= powerBudget;
+                trace(highRankWaveformMatrix) <= txPower;
         cvx_end
         [~, userIndex] = max(target);
 

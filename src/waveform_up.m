@@ -1,11 +1,11 @@
-function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, beta4, powerBudget, channel)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, beta4, txPower, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [h_{q, n}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %
     % OutputArg(s):
@@ -28,9 +28,9 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
     % \boldsymbol{w}_n
     spatialPrecoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
     % \boldsymbol{p}
-    frequencyWeight = sqrt(powerBudget / norm(spatialPrecoder, 'fro') ^ 2);
+    carrierWeight = sqrt(txPower / norm(spatialPrecoder, 'fro') ^ 2);
     % \boldsymbol{s}_n
-    waveform = frequencyWeight * spatialPrecoder;
+    waveform = carrierWeight * spatialPrecoder;
     % \sum v_{\text{out}}, v\{\text{out}, q}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 

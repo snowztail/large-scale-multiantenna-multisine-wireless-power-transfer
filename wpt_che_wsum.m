@@ -5,8 +5,8 @@ userVoltageCheWsum = zeros(length(Variable.weight), nUsers);
 channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
 for iWeight = 1 : length(Variable.weight)
     weight = Variable.weight(iWeight, :);
-    [~, ~, userVoltageWsum(iWeight, :)] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weight);
-    [~, ~, userVoltageCheWsum(iWeight, :)] = waveform_che_wsum(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss);
+    [~, ~, userVoltageWsum(iWeight, :)] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight);
+    [~, ~, userVoltageCheWsum(iWeight, :)] = waveform_che_wsum(beta2, beta4, txPower, channel, tolerance, weight, pathloss);
 end
 save('data/wpt_che_wsum.mat');
 %% Result

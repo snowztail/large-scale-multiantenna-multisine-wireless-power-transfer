@@ -1,11 +1,11 @@
-function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_rand(beta2, beta4, powerBudget, channel, tolerance, weight, pathloss)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
@@ -31,15 +31,15 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     % Author & Date: Yang (i@snowztail.com) - 25 Mar 20
 
 
-    % single receive antenna
+
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? users have the same pathloss
     % pathloss = rand(1, nUsers);
     pathloss = 1 ./ pathloss;
     % % ? initialize \boldsymbol{p}_q by uniform power allocation over subbands of a given user (the power across users depend on pathloss)
-    % frequencyWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
+    % carrierWeight = sqrt(ones(nSubbands, nUsers) / nSubbands / nUsers ./ pathloss);
 
-    frequencyWeight = squeeze(sum(channel)) / norm(squeeze(sum(channel)), 'fro') * sqrt(powerBudget);
+    carrierWeight = squeeze(sum(channel)) / norm(squeeze(sum(channel)), 'fro') * sqrt(txPower);
 
     % \boldsymbol{M}'_{k}
     shiftMatrix = cell(1, nSubbands);
@@ -49,11 +49,11 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     % t_{q, k}
     auxiliary = zeros(nUsers, nSubbands);
     % \boldsymbol{X}_{q}
-    frequencyWeightMatrix = zeros(nSubbands, nSubbands, nUsers);
+    carrierWeightMatrix = zeros(nSubbands, nSubbands, nUsers);
     for iUser = 1 : nUsers
-        frequencyWeightMatrix(:, :, iUser) = frequencyWeight(:, iUser) * frequencyWeight(:, iUser)';
+        carrierWeightMatrix(:, :, iUser) = carrierWeight(:, iUser) * carrierWeight(:, iUser)';
         for iSubband = 1 : nSubbands
-            auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * frequencyWeightMatrix(:, :, iUser));
+            auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * carrierWeightMatrix(:, :, iUser));
         end
     end
 
@@ -71,10 +71,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % \boldsymbol{A}'_{q, 1}
         termA1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
-            termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).' * nTxs ^ 2 * powerBudget ^ 2 * pathloss(iUser) ^ 4);
-            termC1{iUser} = - ((beta2 * powerBudget * nTxs * pathloss(iUser) ^ 2 + 3 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
+            termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).' * nTxs ^ 2 * txPower ^ 2 * pathloss(iUser) ^ 4);
+            termC1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - 3 * beta4 * powerBudget ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
+                termC1{iUser} = termC1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             termA1{iUser} = termC1{iUser} + termC1{iUser}';
         end
@@ -82,12 +82,12 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
         cvx_begin quiet
             % \boldsymbol{X}
-            variable highRankFrequencyWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
+            variable highRankcarrierWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
             target = cvx(zeros(1, nUsers));
             traceSum = 0;
             for iUser = 1 : nUsers
-                target(iUser) = trace(termA1{iUser} * highRankFrequencyWeightMatrix(:, :, iUser)) + termBarC(iUser);
-                traceSum = traceSum + pathloss(iUser) * trace(highRankFrequencyWeightMatrix(:, :, iUser));
+                target(iUser) = trace(termA1{iUser} * highRankcarrierWeightMatrix(:, :, iUser)) + termBarC(iUser);
+                traceSum = traceSum + pathloss(iUser) * trace(highRankcarrierWeightMatrix(:, :, iUser));
             end
             minimize(max(target));
             subject to
@@ -96,7 +96,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         [~, userIndex] = max(target);
 
         % * Derive a best rank-1 solution from randomly generated vectors
-        frequencyWeightMatrix_ = highRankFrequencyWeightMatrix;
+        carrierWeightMatrix_ = highRankcarrierWeightMatrix;
         % denote term \boldsymbol{A}'_{q, 1} as \boldsymbol{B}_{1, q} for any q ~= q_0
         termB1 = termA1;
         termB1{userIndex} = 0;
@@ -105,15 +105,15 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % denote term \Lambda_q * \boldsymbol{I} as \boldsymbol{B}_{2, q}
         termB2 = cell(nUsers, 1);
         termQ = cell(nUsers, 1);
-        frequencyWeightSqrtMatrix = cell(nUsers, 1);
+        carrierWeightSqrtMatrix = cell(nUsers, 1);
         for iUser = 1 : nUsers
             termB2{iUser} = pathloss(iUser) * eye(nSubbands);
-            frequencyWeightSqrtMatrix{iUser} = frequencyWeightMatrix_(:, :, iUser) ^ (1 / 2);
-            [v, ~] = eig(frequencyWeightSqrtMatrix{iUser} * termB1{iUser} * frequencyWeightSqrtMatrix{iUser});
-            termQ{iUser} = v' * frequencyWeightSqrtMatrix{iUser} * termB2{iUser} * frequencyWeightSqrtMatrix{iUser} * v;
+            carrierWeightSqrtMatrix{iUser} = carrierWeightMatrix_(:, :, iUser) ^ (1 / 2);
+            [v, ~] = eig(carrierWeightSqrtMatrix{iUser} * termB1{iUser} * carrierWeightSqrtMatrix{iUser});
+            termQ{iUser} = v' * carrierWeightSqrtMatrix{iUser} * termB2{iUser} * carrierWeightSqrtMatrix{iUser} * v;
             randomVector = randomize(termQ{iUser});
-            frequencyWeight(:, iUser) = frequencyWeightSqrtMatrix{iUser} * v * randomVector;
-            frequencyWeightMatrix_(:, :, iUser) = frequencyWeight(:, iUser) * frequencyWeight(:, iUser)';
+            carrierWeight(:, iUser) = carrierWeightSqrtMatrix{iUser} * v * randomVector;
+            carrierWeightMatrix_(:, :, iUser) = carrierWeight(:, iUser) * carrierWeight(:, iUser)';
             clearvars v;
         end
 
@@ -121,14 +121,14 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         auxiliary = zeros(nUsers, nSubbands);
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * frequencyWeightMatrix_(:, :, iUser));
+                auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * carrierWeightMatrix_(:, :, iUser));
             end
         end
 
         % Update target function
         target = zeros(nUsers, 1);
         for iUser = 1 : nUsers
-            target(iUser) = real(trace(termA1{iUser} * frequencyWeightMatrix_(:, :, iUser)) + termBarC(iUser));
+            target(iUser) = real(trace(termA1{iUser} * carrierWeightMatrix_(:, :, iUser)) + termBarC(iUser));
         end
         maxTarget_ = max(target);
 
@@ -141,9 +141,9 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
 
     end
     % \bar{\boldsymbol{s}}_n
-    normalizedWaveform = sum(repmat(reshape(frequencyWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
+    normalizedWaveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* conj(channel), 3) / sqrt(nTxs);
     % \boldsymbol{s}_{\text{asym}}
-    waveform = sqrt(powerBudget) * normalizedWaveform / norm(normalizedWaveform, 'fro');
+    waveform = sqrt(txPower) * normalizedWaveform / norm(normalizedWaveform, 'fro');
     % \sum v_{\text{out}}, v\{\text{out}, q}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 

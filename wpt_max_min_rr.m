@@ -8,10 +8,10 @@ for iUser = 1 : length(Variable.nUsers)
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
     for iRealization = 1 : nRealizations
         channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-        [~, ~, ~, minVoltageRr(iUser, iRealization)] = waveform_max_min_rr(beta2, beta4, powerBudget, channel, tolerance, weight);
+        [~, ~, ~, minVoltageRr(iUser, iRealization)] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance, weight);
         for iCandidate = 1 : length(Variable.nCandidates)
             nCandidates = Variable.nCandidates(iCandidate);
-            [~, ~, ~, minVoltageRand(iUser, iRealization, iCandidate)] = waveform_max_min_rand(beta2, beta4, powerBudget, channel, tolerance, weight, nCandidates);
+            [~, ~, ~, minVoltageRand(iUser, iRealization, iCandidate)] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weight, nCandidates);
         end
     end
 end

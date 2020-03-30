@@ -1,11 +1,11 @@
-function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, tolerance)
+function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, tolerance)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %
@@ -25,19 +25,21 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
     % Author & Date: Yang (i@snowztail.com) - 06 Mar 20
 
 
-    % single receive antenna
+
+    % * initialize complex carrier weight (thus power allocation) by matched filter
     [~, nSubbands] = size(channel);
-    % ? initialize \boldsymbol{p} by uniform power allocation
-    frequencyWeight = sqrt(powerBudget / nSubbands) * ones(nSubbands, 1);
+    % \xi_n
+    % carrierWeight = sqrt(txPower) * conj(channel) / norm(channel, 'fro');
+    carrierWeight = sqrt(txPower / nSubbands) * ones(nSubbands, 1);
     % \boldsymbol{X}
-    frequencyWeightMatrix = frequencyWeight * frequencyWeight';
+    carrierWeightMatrix = carrierWeight * carrierWeight';
     % \boldsymbol{M}''_k
     channelNormMatrix = cell(1, nSubbands);
     % t_k
     auxiliary = zeros(1, nSubbands);
     for iSubband = 1 : nSubbands
         channelNormMatrix{iSubband} = diag(diag(vecnorm(channel, 2, 1).' * vecnorm(channel, 2, 1), iSubband - 1), iSubband - 1);
-        auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * frequencyWeightMatrix);
+        auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * carrierWeightMatrix);
     end
 
     isConverged = false;
@@ -53,39 +55,39 @@ function [waveform, voltage] = waveform_su(beta2, beta4, powerBudget, channel, t
         % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
         % \boldsymbol{x}^{\star}
         [v, d] = eig(termA1);
-        frequencyWeight = sqrt(powerBudget) * v(:, diag(d) == min(diag(d)));
+        carrierWeight = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
-        frequencyWeightMatrix_ = frequencyWeight * frequencyWeight';
+        carrierWeightMatrix_ = carrierWeight * carrierWeight';
 
         % % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
         % cvx_begin
         %     cvx_solver mosek
-        %     variable frequencyWeightMatrix_
-        %     minimize trace(termA1 * frequencyWeightMatrix_)
+        %     variable carrierWeightMatrix_
+        %     minimize trace(termA1 * carrierWeightMatrix_)
         %     subject to
-        %         trace(frequencyWeightMatrix_) <= powerBudget;
+        %         trace(carrierWeightMatrix_) <= txPower;
         % cvx_end
 
         % Update \boldsymbol{t}
         for iSubband = 1 : nSubbands
-            auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * frequencyWeightMatrix_);
+            auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * carrierWeightMatrix_);
         end
         % test convergence
-        if (norm(frequencyWeightMatrix_ - frequencyWeightMatrix, 'fro')) / norm(frequencyWeightMatrix_, 'fro') <= tolerance
+        if (norm(carrierWeightMatrix_ - carrierWeightMatrix, 'fro')) / norm(carrierWeightMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
-        frequencyWeightMatrix = frequencyWeightMatrix_;
+        carrierWeightMatrix = carrierWeightMatrix_;
     end
     % \boldsymbol{\tilde{s}_n}
     spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
     % \boldsymbol{s_n}
-    waveform = frequencyWeight.' .* spatialPrecoder;
+    waveform = carrierWeight.' .* spatialPrecoder;
     % v_{\text{out},q}
-    voltage = beta2 * frequencyWeight' * channelNormMatrix{1} * frequencyWeight + (3 / 2) * beta4 * frequencyWeight' * channelNormMatrix{1} * frequencyWeight * (frequencyWeight' * channelNormMatrix{1} * frequencyWeight)';
+    voltage = beta2 * carrierWeight' * channelNormMatrix{1} * carrierWeight + (3 / 2) * beta4 * carrierWeight' * channelNormMatrix{1} * carrierWeight * (carrierWeight' * channelNormMatrix{1} * carrierWeight)';
     if nSubbands > 1
         for iSubband = 1 : nSubbands - 1
-            voltage = voltage + 3 * beta4 * frequencyWeight' * channelNormMatrix{iSubband + 1} * frequencyWeight * (frequencyWeight' * channelNormMatrix{iSubband + 1} * frequencyWeight)';
+            voltage = voltage + 3 * beta4 * carrierWeight' * channelNormMatrix{iSubband + 1} * carrierWeight * (carrierWeight' * channelNormMatrix{iSubband + 1} * carrierWeight)';
         end
     end
 

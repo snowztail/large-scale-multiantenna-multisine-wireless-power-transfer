@@ -11,12 +11,12 @@ for iUser = 1 : length(Variable.nUsers)
     for iRealization = 1 : nRealizations
         channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
         % assign FA weight based on voltage achieved by UP
-        [~, ~, voltageUp] = waveform_up(beta2, beta4, powerBudget, channel);
+        [~, ~, voltageUp] = waveform_up(beta2, beta4, txPower, channel);
         weightFa = voltageUp .^ (-1) / sum(voltageUp .^ (-1));
-        [~, ~, voltageWsumEq{iUser, iRealization}] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weightEq);
-        [~, ~, voltageWsumFa{iUser, iRealization}] = waveform_wsum(beta2, beta4, powerBudget, channel, tolerance, weightFa);
-        [~, ~, voltageRand{iUser, iRealization}] = waveform_max_min_rand(beta2, beta4, powerBudget, channel, tolerance, weightEq, nCandidates);
-        [~, ~, voltageCheRand{iUser, iRealization}] = waveform_max_min_che_rand(beta2, beta4, powerBudget, channel, tolerance, weightEq, pathloss);
+        [~, ~, voltageWsumEq{iUser, iRealization}] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weightEq);
+        [~, ~, voltageWsumFa{iUser, iRealization}] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weightFa);
+        [~, ~, voltageRand{iUser, iRealization}] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weightEq, nCandidates);
+        [~, ~, voltageCheRand{iUser, iRealization}] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weightEq, pathloss);
     end
 end
 save('data/wpt_cdf.mat');

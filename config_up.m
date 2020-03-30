@@ -2,12 +2,12 @@
 eirp = db2pow(36 - 30);
 nCandidates = 50;
 nTxs = 50;
-powerBudget = eirp / nTxs;
+txPower = eirp / nTxs;
 %% Channel
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 distance = 10;
-pathlossExponent = 2;
+
 nRealizations = 2;
 fadingType = 'selective';
 %% Harvester

@@ -23,16 +23,16 @@ function [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4,
     % Author & Date: Yang (i@snowztail.com) - 14 Mar 20
 
 
-    % single receive antenna
+
     [nTxs, nSubbands, nUsers] = size(channel);
-    waveform = waveform(:);
+    waveformVector = vec(waveform);
 
     % \boldsymbol{M}_{q, k}
     channelMatrix = cell(nUsers, nSubbands);
     for iUser = 1 : nUsers
-        subchannel = channel(:, :, iUser);
-        % \boldsymbol{M}_{q}
-        subchannelMatrix = conj(subchannel(:)) * subchannel(:).';
+        subchannelVector = vec(channel(:, :, iUser));
+        % \boldsymbol{h}_{q}
+        subchannelMatrix = conj(subchannelVector) * subchannelVector.';
         for iSubband = 1 : nSubbands
             channelMatrix{iUser, iSubband} = zeros(nTxs * nSubbands);
             for jSubband = 1 : nSubbands + 1 - iSubband
@@ -44,14 +44,13 @@ function [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4,
     % v_{\text{out},q}
     userVoltage = zeros(1, nUsers);
     for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
+        userVoltage(iUser) = real(beta2 * waveformVector' * channelMatrix{iUser, 1} * waveformVector + (3 / 2) * beta4 * waveformVector' * channelMatrix{iUser, 1} * waveformVector * (waveformVector' * channelMatrix{iUser, 1} * waveformVector)');
         if nSubbands > 1
             for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
+                userVoltage(iUser) = userVoltage(iUser) + real(3 * beta4 * waveformVector' * channelMatrix{iUser, iSubband + 1} * waveformVector * (waveformVector' * channelMatrix{iUser, iSubband + 1} * waveformVector)');
             end
         end
     end
-    userVoltage = real(userVoltage);
     % minimum user voltage
     minVoltage = min(userVoltage);
     % \sum v_{\text{out}}

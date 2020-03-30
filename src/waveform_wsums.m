@@ -1,11 +1,11 @@
-function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, powerBudget, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
-    %   - powerBudget [P]: transmit power constraint
+    %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %   - weight [w_q] (1 * nUsers): user weights
@@ -29,12 +29,12 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, powe
     % Author & Date: Yang (i@snowztail.com) - 11 Mar 20
 
 
-    % single receive antenna
+
     [nTxs, nSubbands, nUsers] = size(channel);
     % ? initialize \boldsymbol{p} by uniform power allocation
-    frequencyWeight = sqrt(powerBudget / nSubbands) * ones(nSubbands, 1);
+    carrierWeight = sqrt(txPower / nSubbands) * ones(nSubbands, 1);
     % \boldsymbol{X}
-    frequencyWeightMatrix = frequencyWeight * frequencyWeight';
+    carrierWeightMatrix = carrierWeight * carrierWeight';
 
     % \boldsymbol{w}_n
     spatialPrecoder = zeros(nTxs, nSubbands);
@@ -56,7 +56,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, powe
         equivalentSubchannelMatrix = equivalentSubchannel * equivalentSubchannel';
         for iSubband = 1 : nSubbands
             equivalentChannelMatrix{iUser, iSubband} = diag(diag(equivalentSubchannelMatrix, iSubband - 1), iSubband - 1);
-            auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * frequencyWeightMatrix);
+            auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * carrierWeightMatrix);
         end
     end
 
@@ -76,36 +76,36 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, powe
         % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
         % \boldsymbol{x}^{\star}
         [v, d] = eig(termA1);
-        frequencyWeight = sqrt(powerBudget) * v(:, diag(d) == min(diag(d)));
+        carrierWeight = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
-        frequencyWeightMatrix_ = frequencyWeight * frequencyWeight';
+        carrierWeightMatrix_ = carrierWeight * carrierWeight';
         % Update \boldsymbol{t}
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * frequencyWeightMatrix_);
+                auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * carrierWeightMatrix_);
             end
         end
         % test convergence
-        if (norm(frequencyWeightMatrix_ - frequencyWeightMatrix, 'fro')) / norm(frequencyWeightMatrix_, 'fro') <= tolerance
+        if (norm(carrierWeightMatrix_ - carrierWeightMatrix, 'fro')) / norm(carrierWeightMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
-        frequencyWeightMatrix = frequencyWeightMatrix_;
+        carrierWeightMatrix = carrierWeightMatrix_;
     end
 
     % v_{\text{out}, q}
     userVoltage = zeros(1, nUsers);
     for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight + (3 / 2) * beta4 * frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight * (frequencyWeight' * equivalentChannelMatrix{iUser, 1} * frequencyWeight)';
+        userVoltage(iUser) = beta2 * carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight + (3 / 2) * beta4 * carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight * (carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight)';
         if nSubbands > 1
             for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * frequencyWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * frequencyWeight * (frequencyWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * frequencyWeight)';
+                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * carrierWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * carrierWeight * (carrierWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * carrierWeight)';
             end
         end
     end
     userVoltage = real(userVoltage);
     % \boldsymbol{s_n}
-    waveform = frequencyWeight.' .* spatialPrecoder;
+    waveform = carrierWeight.' .* spatialPrecoder;
     % \sum v_{\text{out}}
     sumVoltage = sum(userVoltage);
 
