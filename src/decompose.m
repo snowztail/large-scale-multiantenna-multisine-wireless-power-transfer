@@ -9,7 +9,7 @@ function [component] = decompose(matrix)
     %   - component (M * R): a candidate component
     %
     % Comment(s):
-    %   - assume the input matrix is Hermitian
+    %   - for Hermitian inputs only
     %   - the output component is not unique
     %
     % Reference(s):
@@ -18,11 +18,11 @@ function [component] = decompose(matrix)
     % Author & Date: Yang (i@snowztail.com) - 25 Mar 20
 
 
-    l = length(matrix);
     r = rank(matrix);
-    [v, d] = eig(matrix);
-    [d, index] = sort(diag(d), 'ascend', 'ComparisonMethod', 'abs');
-    v = v(:, index);
-    component = v * [zeros(l - r, r); sqrt(diag(d(l - r + 1 : end)))];
+    [u, s] = svd(matrix);
+    [s, index] = sort(diag(s), 'descend', 'ComparisonMethod', 'abs');
+    u = u(:, index);
+    s = diag(s);
+    component = u(:, 1 : r) * s(1 : r, 1 : r) ^ (1 / 2);
 
 end
