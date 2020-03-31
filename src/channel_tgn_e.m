@@ -34,7 +34,8 @@ function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFre
 
     % model taps as i.i.d. CSCG variables
     tapGain = repmat(sqrt(tapPower / 2), [1 1 nTxs nUsers]) .* (randn(nTaps, nClusters, nTxs, nUsers) + 1i * randn(nTaps, nClusters, nTxs, nUsers));
-    tapGain = squeeze(sum(tapGain, 2));
+    tapGain = permute(sum(tapGain, 2), [1 3 4 2]);
+    
 
     fading = zeros(nTxs, nSubbands, nUsers);
     switch fadingType
