@@ -26,69 +26,64 @@ function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, toler
 
 
 
-    % * initialize complex carrier weight (thus power allocation) by matched filter
-    [~, nSubbands] = size(channel);
-    % \xi_n
-    % carrierWeight = sqrt(txPower) * conj(channel) / norm(channel, 'fro');
-    carrierWeight = sqrt(txPower / nSubbands) * ones(nSubbands, 1);
+    % * initialize complex carrier weight (thus power allocation) by channel strength
+    [nTxs, nSubbands, nUsers] = size(channel);
+    % \boldsymbol{p}
+    carrierWeight = sqrt(txPower) * permute(sum(channel, 1), [2, 3, 1]) / norm(squeeze(sum(channel)), 'fro');
     % \boldsymbol{X}
     carrierWeightMatrix = carrierWeight * carrierWeight';
-    % \boldsymbol{M}''_k
-    channelNormMatrix = cell(1, nSubbands);
-    % t_k
+
+    % * get channel norm matrix and initialize auxiliary variables
+    % \boldsymbol{M}''
+    [matrixChannelNorm] = matrix_channel_norm(channel);
+    % \boldsynbol{t}
     auxiliary = zeros(1, nSubbands);
     for iSubband = 1 : nSubbands
-        channelNormMatrix{iSubband} = diag(diag(vecnorm(channel, 2, 1).' * vecnorm(channel, 2, 1), iSubband - 1), iSubband - 1);
-        auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * carrierWeightMatrix);
+        auxiliary(iSubband) = trace(matrixChannelNorm{iSubband} * carrierWeightMatrix);
     end
 
+    % * update carrier weight matrix and auxiliary variables iteratively
     isConverged = false;
     while ~isConverged
+        % * update term A1'' and C1''
         % \boldsymbol{C}''_1
-        termC1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * channelNormMatrix{1});
+        C1 = - ((beta2 + 3 * beta4 * auxiliary(1)) / 2 * matrixChannelNorm{1});
         if nSubbands > 1
-            termC1 = termC1 - (3 * beta4 * sum(cat(3, channelNormMatrix{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3));
+            C1 = C1 - (3 * beta4 * sum(cat(3, matrixChannelNorm{2 : end}) .* reshape(conj(auxiliary(2 : end)), [1, 1, nSubbands - 1]), 3));
         end
         % \boldsymbol{A}''_1
-        termA1 = termC1 + termC1';
+        A1 = C1 + C1';
 
-        % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
+        % * solve rank-1 carrier weight matrix in closed form
+        [v, d] = eig(A1);
         % \boldsymbol{x}^{\star}
-        [v, d] = eig(termA1);
-        carrierWeight = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
+        carrierWeight_ = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
-        carrierWeightMatrix_ = carrierWeight * carrierWeight';
-
-        % % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
-        % cvx_begin
-        %     cvx_solver mosek
-        %     variable carrierWeightMatrix_
-        %     minimize trace(termA1 * carrierWeightMatrix_)
-        %     subject to
-        %         trace(carrierWeightMatrix_) <= txPower;
-        % cvx_end
-
+        carrierWeightMatrix_ = carrierWeight_ * carrierWeight_';
         % Update \boldsymbol{t}
         for iSubband = 1 : nSubbands
-            auxiliary(iSubband) = trace(channelNormMatrix{iSubband} * carrierWeightMatrix_);
+            auxiliary(iSubband) = trace(matrixChannelNorm{iSubband} * carrierWeightMatrix_);
         end
-        % test convergence
+
+        % * test convergence
         if (norm(carrierWeightMatrix_ - carrierWeightMatrix, 'fro')) / norm(carrierWeightMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
+        carrierWeight = carrierWeight_;
         carrierWeightMatrix = carrierWeightMatrix_;
     end
-    % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = conj(channel) ./ vecnorm(channel, 2, 1);
-    % \boldsymbol{s_n}
-    waveform = carrierWeight.' .* spatialPrecoder;
-    % v_{\text{out},q}
-    voltage = beta2 * carrierWeight' * channelNormMatrix{1} * carrierWeight + (3 / 2) * beta4 * carrierWeight' * channelNormMatrix{1} * carrierWeight * (carrierWeight' * channelNormMatrix{1} * carrierWeight)';
-    if nSubbands > 1
-        for iSubband = 1 : nSubbands - 1
-            voltage = voltage + 3 * beta4 * carrierWeight' * channelNormMatrix{iSubband + 1} * carrierWeight * (carrierWeight' * channelNormMatrix{iSubband + 1} * carrierWeight)';
-        end
-    end
+
+    % * optimum single-user precoder is MRT
+    % \boldsymbol{\tilde{s}}
+    precoder = conj(channel) ./ vecnorm(channel, 2, 1);
+
+    % * construct waveform
+    % \boldsymbol{s}
+    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+
+    % * compute output voltage
+    % v_{\text{out}}
+    [voltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

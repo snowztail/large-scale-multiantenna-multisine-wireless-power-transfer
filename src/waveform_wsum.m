@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,14 +6,15 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, txPow
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - txPower [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w_q] (1 * nUsers): user weights
+    %   - weight [w] (1 * nUsers): user weights
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}] (nTxs * nSubbands * nUsers): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
+    %   - userVoltage [v_{\text{out}}]: individual user voltages
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -30,78 +31,73 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsum(beta2, beta4, txPow
 
 
 
+    % * initialize complex carrier weight by channel strength and spatial precoder by matched filter
     [nTxs, nSubbands, nUsers] = size(channel);
-    % ? initialize \boldsymbol{s} by uniform power allocation and omidirectional beamforming
-    waveform = sqrt(txPower / nTxs / nSubbands) * ones(nTxs, nSubbands);
+    % \boldsymbol{p}
+    carrierWeight = sqrt(txPower) * permute(sum(channel, 1), [2, 3, 1]) / norm(squeeze(sum(channel)), 'fro');
+    % \boldsymbol{\tilde{s}}
+    precoder = conj(channel);
+    % \boldsymbol{s}
+    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    % normalize waveform power
+    waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
     % \boldsymbol{X}
-    waveformMatrix = waveform(:) * waveform(:)';
+    waveformMatrix = vec(waveform) * vec(waveform)';
 
-    % \boldsymbol{M}_{q, k}
-    channelMatrix = cell(nUsers, nSubbands);
-    % t_{q, k}
+    % * get block diagonal channel matrix and initialize auxiliary variables
+    % \boldsymbol{M}
+    [matrixChannel] = matrix_channel(channel);
+    % \boldsymbol{t}
     auxiliary = zeros(nUsers, nSubbands);
     for iUser = 1 : nUsers
-        subchannel = channel(:, :, iUser);
-        % \boldsymbol{M}_{q}
-        subchannelMatrix = conj(subchannel(:)) * subchannel(:).';
         for iSubband = 1 : nSubbands
-            channelMatrix{iUser, iSubband} = zeros(nTxs * nSubbands);
-            for jSubband = 1 : nSubbands + 1 - iSubband
-                channelMatrix{iUser, iSubband}((jSubband - 1) * nTxs + 1 : jSubband * nTxs, (iSubband - 1) * nTxs + (jSubband - 1) * nTxs + 1 : (iSubband - 1) * nTxs + jSubband * nTxs) = subchannelMatrix((jSubband - 1) * nTxs + 1 : jSubband * nTxs, (iSubband - 1) * nTxs + (jSubband - 1) * nTxs + 1 : (iSubband - 1) * nTxs + jSubband * nTxs);
-            end
-            auxiliary(iUser, iSubband) = trace(channelMatrix{iUser, iSubband} * waveformMatrix);
+            auxiliary(iUser, iSubband) = trace(matrixChannel{iUser, iSubband} * waveformMatrix);
         end
     end
 
+    % * update waveform matrix and auxiliary variables iteratively
     isConverged = false;
     while ~isConverged
+        % * update term A1 and C1
         % \boldsymbol{C}_1
-        termC1 = 0;
+        C1 = 0;
         for iUser = 1 : nUsers
-            termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            C1 = C1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * matrixChannel{iUser, 1});
             if nSubbands > 1
-                termC1 = termC1 - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1 = C1 - weight(iUser) * 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
         end
         % \boldsymbol{A}_1
-        termA1 = termC1 + termC1';
+        A1 = C1 + C1';
 
-        % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
+        % * solve rank-1 waveform in closed form
+        [v, d] = eig(A1);
         % \boldsymbol{x}^{\star}
-        [v, d] = eig(termA1);
-        waveform = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
+        waveform_ = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
-        waveformMatrix_ = waveform * waveform';
-
-        % Update \boldsymbol{t}_{q, k}
+        waveformMatrix_ = waveform_ * waveform_';
+        % Update \boldsymbol{t}
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(channelMatrix{iUser, iSubband} * waveformMatrix_);
+                auxiliary(iUser, iSubband) = trace(matrixChannel{iUser, iSubband} * waveformMatrix_);
             end
         end
 
-        % test convergence
+        % * test convergence
         if (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
+        waveform = waveform_;
         waveformMatrix = waveformMatrix_;
     end
-%     % v_{\text{out}, q}
-%     userVoltage = zeros(1, nUsers);
-%     for iUser = 1 : nUsers
-%         userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
-%         if nSubbands > 1
-%             for iSubband = 1 : nSubbands - 1
-%                 userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
-%             end
-%         end
-%     end
-%     userVoltage = real(userVoltage);
-    % \boldsymbol{s_n}
+
+    % * construct waveform
+    % \boldsymbol{s}
     waveform = reshape(waveform, [nTxs, nSubbands]);
+
+    % * compute output voltage
     % \sum v_{\text{out}}
-%     sumVoltage = sum(userVoltage);
-    [sumVoltage, userVoltage] = harvester_compact(beta2, beta4, waveform, channel);
+    [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

@@ -1,4 +1,4 @@
-clear; close all; clc; initialize; config_su_comparison;
+clear; close all; clc; setup; config_su_comparison;
 %% Waveform design by SU WPT, CHE WSum, UP and ASS algorithms
 voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
 voltageCheWsum = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
@@ -9,7 +9,7 @@ for iTx = 1 : length(Variable.nTxs)
     txPower = eirp / nTxs;
     for iSubband = 1 : length(Variable.nSubbands)
         nSubbands = Variable.nSubbands(iSubband);
-        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
+        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
             [~, voltageSu(iTx, iSubband, iRealization)] = waveform_su(beta2, beta4, txPower, channel, tolerance);

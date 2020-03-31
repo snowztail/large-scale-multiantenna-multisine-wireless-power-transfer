@@ -15,7 +15,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %   - userVoltage [v_{\text{out}, q}]: individual user voltages
-    %   - minVoltage: minimum user voltage
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - maximize the minimum user voltage
@@ -59,16 +59,16 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
         % \bar{c}_q
         termBarC = zeros(1, nUsers);
         % \boldsymbol{C}_{q, 1}
-        termC1 = cell(1, nUsers);
+        C1 = cell(1, nUsers);
         % \boldsymbol{A}_{q, 1}
-        termA1 = cell(1, nUsers);
+        A1 = cell(1, nUsers);
         for iUser = 1 : nUsers
             termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).');
-            termC1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            C1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
             end
-            termA1{iUser} = termC1{iUser} + termC1{iUser}';
+            A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
         % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
@@ -77,7 +77,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
             variable highRankWaveformMatrix(nTxs * nSubbands, nTxs * nSubbands) complex semidefinite;
             target = cvx(zeros(1, nUsers));
             for iUser = 1 : nUsers
-                target(iUser) = trace(termA1{iUser} * highRankWaveformMatrix) + termBarC(iUser);
+                target(iUser) = trace(A1{iUser} * highRankWaveformMatrix) + termBarC(iUser);
             end
             minimize(max(target));
             subject to
@@ -119,20 +119,20 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
         % \bar{c}_q
         termBarC = zeros(1, nUsers);
         % \boldsymbol{C}_{q, 1}
-        termC1 = cell(1, nUsers);
+        C1 = cell(1, nUsers);
         % \boldsymbol{A}_{q, 1}
-        termA1 = cell(1, nUsers);
+        A1 = cell(1, nUsers);
         for iUser = 1 : nUsers
             termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).');
-            termC1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            C1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
             end
-            termA1{iUser} = termC1{iUser} + termC1{iUser}';
+            A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
         for iUser = 1 : nUsers
-            candidateTarget(iCandidate, iUser) = real(trace(termA1{iUser} * candidateWaveformMatrix) + termBarC(iUser));
+            candidateTarget(iCandidate, iUser) = real(trace(A1{iUser} * candidateWaveformMatrix) + termBarC(iUser));
         end
 
     end

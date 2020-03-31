@@ -37,11 +37,11 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
     carrierWeightMatrix = carrierWeight * carrierWeight';
 
     % \boldsymbol{w}_n
-    spatialPrecoder = zeros(nTxs, nSubbands);
+    precoder = zeros(nTxs, nSubbands);
     for iSubband = 1 : nSubbands
         % the optimal spatial beamformer is the dominant eigenvector of the weighted channel matrix
         [v, d] = eig(conj(squeeze(channel(:, iSubband, :))) * diag(weight) * squeeze(channel(:, iSubband, :)).');
-        spatialPrecoder(:, iSubband) = v(:, diag(d) == max(diag(d)));
+        precoder(:, iSubband) = v(:, diag(d) == max(diag(d)));
         clearvars v d;
     end
 
@@ -51,7 +51,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
     auxiliary = zeros(nUsers, nSubbands);
     for iUser = 1 : nUsers
         % \boldsymbol{h}_{e, q}
-        equivalentSubchannel = diag(spatialPrecoder' * conj(channel(:, :, iUser)));
+        equivalentSubchannel = diag(precoder' * conj(channel(:, :, iUser)));
         % \boldsymbol{M}'''_q
         equivalentSubchannelMatrix = equivalentSubchannel * equivalentSubchannel';
         for iSubband = 1 : nSubbands
@@ -63,19 +63,19 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
     isConverged = false;
     while ~isConverged
         % \boldsymbol{C}'''_1
-        termC1 = 0;
+        C1 = 0;
         for iUser = 1 : nUsers
-            termC1 = termC1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1});
+            C1 = C1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1});
             if nSubbands > 1
-                termC1 = termC1 - weight(iUser) * (3 * beta4 * sum(cat(3, equivalentChannelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
+                C1 = C1 - weight(iUser) * (3 * beta4 * sum(cat(3, equivalentChannelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
             end
         end
         % \boldsymbol{A}'''_1
-        termA1 = termC1 + termC1';
+        A1 = C1 + C1';
 
         % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
         % \boldsymbol{x}^{\star}
-        [v, d] = eig(termA1);
+        [v, d] = eig(A1);
         carrierWeight = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
@@ -105,7 +105,7 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
     end
     userVoltage = real(userVoltage);
     % \boldsymbol{s_n}
-    waveform = carrierWeight.' .* spatialPrecoder;
+    waveform = carrierWeight.' .* precoder;
     % \sum v_{\text{out}}
     sumVoltage = sum(userVoltage);
 

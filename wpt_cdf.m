@@ -1,4 +1,4 @@
-clear; close all; clc; initialize; config_cdf;
+clear; close all; clc; setup; config_cdf;
 %% Waveform design by EQ WSum, FA WSum, Max-Min-Rand, and CHE Max-Min-Rand algorithms
 voltageWsumEq = cell(length(Variable.nUsers), nRealizations);
 voltageWsumFa = cell(length(Variable.nUsers), nRealizations);
@@ -7,7 +7,7 @@ voltageCheRand = cell(length(Variable.nUsers), nRealizations);
 for iUser = 1 : length(Variable.nUsers)
     nUsers = Variable.nUsers(iUser);
     weightEq = ones(1, nUsers);
-    pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
+    [pathloss] = large_scale_fading(distance) * ones(1, nUsers);
     for iRealization = 1 : nRealizations
         channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
         % assign FA weight based on voltage achieved by UP

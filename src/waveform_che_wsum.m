@@ -53,23 +53,23 @@ function [waveform, sumVoltage, userVoltage] = waveform_che_wsum(beta2, beta4, t
     isConverged = false;
     while ~isConverged
         % \boldsymbol{C}'_{q, 1}
-        termC1 = cell(nUsers, 1);
+        C1 = cell(nUsers, 1);
         % \boldsymbol{A}'_{q, 1}
-        termA1 = cell(nUsers, 1);
+        A1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
-            termC1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
+            C1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
-            termA1{iUser} = weight(iUser) * (termC1{iUser} + termC1{iUser}');
+            A1{iUser} = weight(iUser) * (C1{iUser} + C1{iUser}');
         end
         % \boldsymbol{A}'_1
-        termA1 = blkdiag(termA1{:});
+        A1 = blkdiag(A1{:});
         % \boldsymbol{\Lambda}
         pathlossMatrix = diag(repelem(pathloss, nSubbands));
 
         % * Solve \bar{\boldsymbol{p}} in closed form (low complexity)
-        [v, d] = eig(pathlossMatrix \ termA1);
+        [v, d] = eig(pathlossMatrix \ A1);
         vMin = v(:, diag(d) == min(diag(d)));
         % \bar{\boldsymbol{p}}
         carrierWeight_ = sqrt(1 / (vMin' * pathlossMatrix * vMin)) * vMin;

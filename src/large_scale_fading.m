@@ -15,7 +15,7 @@ function [largeScaleFading] = large_scale_fading(distance)
     % Author & Date: Yang (i@snowztail.com) - 30 Mar 20
 
 
-    pathlossExponent = 21;
+    pathlossExponent = 2;
     pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10));
 
     % shadowingSd = 3;

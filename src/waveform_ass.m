@@ -23,13 +23,22 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, txPower, channel)
     % Author & Date: Yang (i@snowztail.com) - 08 Mar 20
 
 
+
+    % * allocate all power to the strongest carrier
+    [nTxs, nSubbands, nUsers] = size(channel);
     % \boldsymbol{p}
     carrierWeight = sqrt(txPower) * (max(vecnorm(channel, 2, 1)) == vecnorm(channel, 2, 1))';
-    % \boldsymbol{\tilde{s}_n}
-    spatialPrecoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
+
+    % * optimum single-user precoder is MRT
+    % \boldsymbol{\tilde{s}}
+    precoder = conj(channel) ./ vecnorm(channel, 2, 1);
+
+    % * construct waveform
     % \boldsymbol{s_n}
-    waveform = carrierWeight.' .* spatialPrecoder;
+    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+
+    % * compute output voltage
     % v_{\text{out}}
-    voltage = harvester_compact(beta2, beta4, waveform, channel);
+    [voltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

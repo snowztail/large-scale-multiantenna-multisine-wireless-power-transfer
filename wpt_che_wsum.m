@@ -1,4 +1,4 @@
-clear; close all; clc; initialize; config_che_wsum;
+clear; close all; clc; setup; config_che_wsum;
 %% Waveform design by WSum and CHE WSum algorithms for two-user scenario
 userVoltageWsum = zeros(length(Variable.weight), nUsers);
 userVoltageCheWsum = zeros(length(Variable.weight), nUsers);

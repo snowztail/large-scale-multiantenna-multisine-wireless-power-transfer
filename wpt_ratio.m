@@ -1,14 +1,14 @@
-clear; close all; clc; initialize; config_ratio;
+clear; close all; clc; setup; config_ratio;
 % Waveform design by CHE Max-Min-Rand and MU UP algorithms
 minVoltageCheRand = zeros(length(Variable.nSubbands), length(Variable.nUsers), nRealizations);
 minVoltageUp = zeros(length(Variable.nSubbands), length(Variable.nUsers), nRealizations);
 for iSubband = 1 : length(Variable.nSubbands)
     nSubbands = Variable.nSubbands(iSubband);
-    [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
+    [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands);
     for iUser = 1 : length(Variable.nUsers)
         nUsers = Variable.nUsers(iUser);
         weight = ones(1, nUsers);
-        pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
+        [pathloss] = large_scale_fading(distance) * ones(1, nUsers);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
             [~, ~, ~, minVoltageCheRand(iSubband, iUser, iRealization)] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weight, pathloss);

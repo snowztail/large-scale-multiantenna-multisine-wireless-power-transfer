@@ -12,7 +12,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
     %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %   - userVoltage [v_{\text{out}, q}]: individual user voltages
-    %   - minVoltage: minimum user voltage
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - for single-user and multi-user MISO systems
@@ -26,11 +26,11 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
 
 
     % \boldsymbol{w}_n
-    spatialPrecoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
+    precoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
     % \boldsymbol{p}
-    carrierWeight = sqrt(txPower / norm(spatialPrecoder, 'fro') ^ 2);
+    carrierWeight = sqrt(txPower / norm(precoder, 'fro') ^ 2);
     % \boldsymbol{s}_n
-    waveform = carrierWeight * spatialPrecoder;
+    waveform = carrierWeight * precoder;
     % \sum v_{\text{out}}, v\{\text{out}, q}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 

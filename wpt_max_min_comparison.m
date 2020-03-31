@@ -1,4 +1,4 @@
-clear; close all; clc; initialize; config_max_min_comparison;
+clear; close all; clc; setup; config_max_min_comparison;
 %% Waveform design by Max-Min-Rand, CHE Max-Min-RR and CHE Max-Min-Rand algorithms
 minVoltageRand = zeros(length(Variable.nTxs), length(Variable.nSubbands), length(Variable.nUsers), nRealizations);
 minVoltageCheRr = zeros(length(Variable.nTxs), length(Variable.nSubbands), length(Variable.nUsers), nRealizations);
@@ -8,14 +8,14 @@ for iTx = 1 : length(Variable.nTxs)
     txPower = eirp / nTxs;
     for iSubband = 1 : length(Variable.nSubbands)
         nSubbands = Variable.nSubbands(iSubband);
-        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
+        [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands);
         for iUser = 1 : length(Variable.nUsers)
             nUsers = Variable.nUsers(iUser);
             weight = ones(1, nUsers);
-            pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
+            [pathloss] = large_scale_fading(distance) * ones(1, nUsers);
             for iRealization = 1 : nRealizations
                 channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-                [~, ~, ~, minVoltageRand(iTx, iSubband, iUser, iRealization)] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weight, nCandidates);
+%                 [~, ~, ~, minVoltageRand(iTx, iSubband, iUser, iRealization)] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weight, nCandidates);
                 [~, ~, ~, minVoltageCheRr(iTx, iSubband, iUser, iRealization)] = waveform_max_min_che_rr(beta2, beta4, txPower, channel, tolerance, weight, pathloss);
                 [~, ~, ~, minVoltageCheRand(iTx, iSubband, iUser, iRealization)] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weight, pathloss);
             end

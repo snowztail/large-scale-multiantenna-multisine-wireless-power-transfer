@@ -6,8 +6,7 @@ txPower = eirp / nTxs;
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 distance = 10;
-
-[pathloss] = large_scale_fading(distance);
+[pathloss] = large_scale_fading(distance) * ones(nUsers, 1);
 nRealizations = 2e2;
 fadingType = 'selective';
 %% Harvester

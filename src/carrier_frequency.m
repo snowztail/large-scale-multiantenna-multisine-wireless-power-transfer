@@ -1,10 +1,11 @@
-function [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth)
+function [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands)
     % Function:
     %   - calculate the carrier frequency
     %
     % InputArg(s):
     %   - centerFrequency: a central frequency between the upper and lower cutoff frequencies
     %   - bandwidth: a measure of the width of available frequencies
+    %   - nSubbands [N]: number of subbands/subcarriers
     %
     % OutputArg(s):
     %   - carrierFrequency: the frequency of carriers without modulation yet

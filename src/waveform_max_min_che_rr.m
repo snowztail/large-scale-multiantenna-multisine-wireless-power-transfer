@@ -15,7 +15,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     %   - waveform [\boldsymbol{s}_{\text{asym}}] (nTxs * nSubbands): the asymptotically optimal complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
     %   - userVoltage [v_{\text{out}, q}]: individual user voltages
-    %   - minVoltage: minimum user voltage
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - maximize the minimum user voltage
@@ -68,16 +68,16 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % \bar{c}_q'
         termBarC = zeros(nUsers, 1);
         % \boldsymbol{C}'_{q, 1}
-        termC1 = cell(nUsers, 1);
+        C1 = cell(nUsers, 1);
         % \boldsymbol{A}'_{q, 1}
-        termA1 = cell(nUsers, 1);
+        A1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
             termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).' * nTxs ^ 2 * txPower ^ 2 * pathloss(iUser) ^ 4);
-            termC1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
+            C1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
-            termA1{iUser} = termC1{iUser} + termC1{iUser}';
+            A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
         % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
@@ -87,7 +87,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             target = cvx(zeros(1, nUsers));
             traceSum = 0;
             for iUser = 1 : nUsers
-                target(iUser) = trace(termA1{iUser} * highRankcarrierWeightMatrix(:, :, iUser)) + termBarC(iUser);
+                target(iUser) = trace(A1{iUser} * highRankcarrierWeightMatrix(:, :, iUser)) + termBarC(iUser);
                 traceSum = traceSum + pathloss(iUser) * trace(highRankcarrierWeightMatrix(:, :, iUser));
             end
             minimize(max(target));
@@ -114,7 +114,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
 %             coefficient = zeros(nUsers, sum(carrierWeightRank .^ 2));
 %             for iUser = 1 : nUsers
 %                 for jUser = 1 : nUsers
-%                     coefficient(iUser, 1 + sum(carrierWeightRank(1 : jUser - 1) .^ 2) : sum(carrierWeightRank(1 : jUser) .^ 2)) = reshape((carrierWeightFactor{jUser}' * (termA1{iUser} - termA1{userIndex}) * carrierWeightFactor{jUser}).', 1, []);
+%                     coefficient(iUser, 1 + sum(carrierWeightRank(1 : jUser - 1) .^ 2) : sum(carrierWeightRank(1 : jUser) .^ 2)) = reshape((carrierWeightFactor{jUser}' * (A1{iUser} - A1{userIndex}) * carrierWeightFactor{jUser}).', 1, []);
 %                 end
 %             end
 %             % obtain an orthonormal basis for the null space of the coefficient matrix
@@ -170,7 +170,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             % (deltaVector, factor, term, pathloss, nSubbands, nUsers, userIndex, deltaRank)
             % options = optimset('Algorithm', 'levenberg-marquardt', 'Display', 'off');
             options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
-            delta = fsolve(@(delta) rr_equations_che(delta, carrierWeightFactor, termA1, pathloss, nSubbands, nUsers, userIndex, carrierWeightRank), deltaInit, options);
+            delta = fsolve(@(delta) rr_equations_che(delta, carrierWeightFactor, A1, pathloss, nSubbands, nUsers, userIndex, carrierWeightRank), deltaInit, options);
 
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             deltaInstance = cell(nUsers, 1);
@@ -217,7 +217,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % Update target function
         target = zeros(nUsers, 1);
         for iUser = 1 : nUsers
-            target(iUser) = real(trace(termA1{iUser} * carrierWeightMatrix_(:, :, iUser)) + termBarC(iUser));
+            target(iUser) = real(trace(A1{iUser} * carrierWeightMatrix_(:, :, iUser)) + termBarC(iUser));
         end
         maxTarget_ = max(target);
 

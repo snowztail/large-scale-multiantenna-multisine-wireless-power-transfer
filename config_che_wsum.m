@@ -8,10 +8,9 @@ txPower = eirp / nTxs;
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 nSubbands = 10;
-[carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
+[carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands);
 distance = 20;
-
-pathloss = db2pow(60.046 + 10 * pathlossExponent * log10(distance / 10)) * ones(1, nUsers);
+[pathloss] = large_scale_fading(distance) * ones(nUsers, 1);
 nRealizations = 1;
 fadingType = 'selective';
 %% Harvester

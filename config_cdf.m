@@ -7,7 +7,7 @@ txPower = eirp / nTxs;
 centerFrequency = 2.4e9;
 bandwidth = 1e7;
 nSubbands = 8;
-[carrierFrequency] = carrier_frequency(centerFrequency, bandwidth);
+[carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSubbands);
 distance = 10;
 
 nRealizations = 2;

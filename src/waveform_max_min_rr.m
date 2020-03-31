@@ -6,15 +6,15 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - txPower [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w_q] (1 * nUsers): user weights
+    %   - weight [w] (1 * nUsers): user weights
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
-    %   - minVoltage: minimum user voltage
+    %   - userVoltage [v_{\text{out}}]: individual user voltages
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - maximize the minimum user voltage
@@ -61,16 +61,16 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         % \bar{c}_q
         termBarC = zeros(1, nUsers);
         % \boldsymbol{C}_{q, 1}
-        termC1 = cell(1, nUsers);
+        C1 = cell(1, nUsers);
         % \boldsymbol{A}_{q, 1}
-        termA1 = cell(1, nUsers);
+        A1 = cell(1, nUsers);
         for iUser = 1 : nUsers
             termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).');
-            termC1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            C1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
             if nSubbands > 1
-                termC1{iUser} = termC1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
             end
-            termA1{iUser} = termC1{iUser} + termC1{iUser}';
+            A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
         % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
@@ -79,7 +79,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             variable highRankWaveformMatrix(nTxs * nSubbands, nTxs * nSubbands) complex semidefinite;
             target = cvx(zeros(1, nUsers));
             for iUser = 1 : nUsers
-                target(iUser) = trace(termA1{iUser} * highRankWaveformMatrix) + termBarC(iUser);
+                target(iUser) = trace(A1{iUser} * highRankWaveformMatrix) + termBarC(iUser);
             end
             minimize(max(target));
             subject to
@@ -97,7 +97,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             % % flatten trace equations to standard linear equations
             % coefficient = zeros(nUsers, waveformRank ^ 2);
             % for iUser = 1 : nUsers
-            %     coefficient(iUser, :) = reshape((waveformFactor' * (termA1{iUser} - termA1{userIndex}) * waveformFactor).', 1, []);
+            %     coefficient(iUser, :) = reshape((waveformFactor' * (A1{iUser} - A1{userIndex}) * waveformFactor).', 1, []);
             % end
             % % obtain an orthonormal basis for the null space of the coefficient matrix
             % delta = null(coefficient);
@@ -109,7 +109,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             deltaInit = eye(waveformRank);
 
             options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
-            delta = fsolve(@(delta) rr_equations(delta, waveformFactor, termA1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
+            delta = fsolve(@(delta) rr_equations(delta, waveformFactor, A1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
 
             % calculate eigenvalues of delta
             d = eig(delta);
