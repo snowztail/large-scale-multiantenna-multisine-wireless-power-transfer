@@ -1,6 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - maximize the minimum voltage based on rank reduction
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter

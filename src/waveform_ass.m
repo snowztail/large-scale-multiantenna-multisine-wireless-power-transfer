@@ -1,6 +1,7 @@
 function [waveform, voltage] = waveform_ass(beta2, beta4, txPower, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - allocate all power to the strongest subband
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -14,7 +15,6 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, txPower, channel)
     %
     % Comment(s):
     %   - for single-user MISO systems
-    %   - allocate all power to the strongest subband
     %   - optimal for linear harvester model
     %
     % Reference(s):

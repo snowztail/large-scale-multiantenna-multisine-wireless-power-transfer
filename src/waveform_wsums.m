@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPower, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsums(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %
@@ -6,14 +6,15 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - txPower [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w_q] (1 * nUsers): user weights
+    %   - weight [w] (1 * nUsers): user weights
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
+    %   - userVoltage [v_{\text{out}}]: individual user voltages
+    %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
     %   - for multi-user MISO systems
@@ -30,83 +31,80 @@ function [waveform, sumVoltage, userVoltage] = waveform_wsums(beta2, beta4, txPo
 
 
 
+    % * initialize complex carrier weight (thus power allocation) by channel strength
     [nTxs, nSubbands, nUsers] = size(channel);
-    % ? initialize \boldsymbol{p} by uniform power allocation
-    carrierWeight = sqrt(txPower / nSubbands) * ones(nSubbands, 1);
+    % \boldsymbol{p}
+    carrierWeight = sqrt(txPower) * permute(sum(channel, 1), [2, 3, 1]) / norm(squeeze(sum(channel)), 'fro');
     % \boldsymbol{X}
     carrierWeightMatrix = carrierWeight * carrierWeight';
 
-    % \boldsymbol{w}_n
+    % * considering the linear model, the optimal spatial beamformer is the dominant eigenvector of the weighted channel matrix
+    % \boldsymbol{w}
     precoder = zeros(nTxs, nSubbands);
     for iSubband = 1 : nSubbands
-        % the optimal spatial beamformer is the dominant eigenvector of the weighted channel matrix
         [v, d] = eig(conj(squeeze(channel(:, iSubband, :))) * diag(weight) * squeeze(channel(:, iSubband, :)).');
         precoder(:, iSubband) = v(:, diag(d) == max(diag(d)));
         clearvars v d;
     end
+    % unify notations
+    precoder = repmat(precoder, [1, 1, nUsers]);
 
-    % \boldsymbol{M}'''_{q, k}
-    equivalentChannelMatrix = cell(nUsers, nSubbands);
-    % t_{q, k}
+    % * update equivalent channel matrix and auxiliary variables iteratively
+    % \boldsymbol{M}'''
+    [matrixChannelEquivalent] = matrix_channel_equivalent(channel, precoder);
+    % \boldsymbol{t}
     auxiliary = zeros(nUsers, nSubbands);
     for iUser = 1 : nUsers
-        % \boldsymbol{h}_{e, q}
-        equivalentSubchannel = diag(precoder' * conj(channel(:, :, iUser)));
-        % \boldsymbol{M}'''_q
-        equivalentSubchannelMatrix = equivalentSubchannel * equivalentSubchannel';
         for iSubband = 1 : nSubbands
-            equivalentChannelMatrix{iUser, iSubband} = diag(diag(equivalentSubchannelMatrix, iSubband - 1), iSubband - 1);
-            auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * carrierWeightMatrix);
+            auxiliary(iUser, iSubband) = trace(matrixChannelEquivalent{iUser, iSubband} * carrierWeightMatrix);
         end
     end
 
+    % * update carrier weight matrix and auxiliary variables iteratively
     isConverged = false;
     while ~isConverged
+        % * update term A1''' and C1'''
         % \boldsymbol{C}'''_1
         C1 = 0;
         for iUser = 1 : nUsers
-            C1 = C1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * equivalentChannelMatrix{iUser, 1});
+            C1 = C1 - weight(iUser) * ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * matrixChannelEquivalent{iUser, 1});
             if nSubbands > 1
-                C1 = C1 - weight(iUser) * (3 * beta4 * sum(cat(3, equivalentChannelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3));
+                C1 = C1 - weight(iUser) * (3 * beta4 * sum(cat(3, matrixChannelEquivalent{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3));
             end
         end
         % \boldsymbol{A}'''_1
         A1 = C1 + C1';
 
-        % * Solve rank-1 \boldsymbol{X}^{\star} in closed form (low complexity)
-        % \boldsymbol{x}^{\star}
+        % * solve rank-1 carrier weight matrix in closed form
         [v, d] = eig(A1);
-        carrierWeight = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
+        % \boldsymbol{x}^{\star}
+        carrierWeight_ = sqrt(txPower) * v(:, diag(d) == min(diag(d)));
         clearvars v d;
         % \boldsymbol{X}^{\star}
-        carrierWeightMatrix_ = carrierWeight * carrierWeight';
+        carrierWeightMatrix_ = carrierWeight_ * carrierWeight_';
         % Update \boldsymbol{t}
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(equivalentChannelMatrix{iUser, iSubband} * carrierWeightMatrix_);
+                auxiliary(iUser, iSubband) = trace(matrixChannelEquivalent{iUser, iSubband} * carrierWeightMatrix_);
             end
         end
-        % test convergence
+
+        % * test convergence
         if (norm(carrierWeightMatrix_ - carrierWeightMatrix, 'fro')) / norm(carrierWeightMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
+        carrierWeight = carrierWeight_;
         carrierWeightMatrix = carrierWeightMatrix_;
     end
 
-    % v_{\text{out}, q}
-    userVoltage = zeros(1, nUsers);
-    for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight + (3 / 2) * beta4 * carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight * (carrierWeight' * equivalentChannelMatrix{iUser, 1} * carrierWeight)';
-        if nSubbands > 1
-            for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * carrierWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * carrierWeight * (carrierWeight' * equivalentChannelMatrix{iUser, iSubband + 1} * carrierWeight)';
-            end
-        end
-    end
-    userVoltage = real(userVoltage);
-    % \boldsymbol{s_n}
-    waveform = carrierWeight.' .* precoder;
-    % \sum v_{\text{out}}
-    sumVoltage = sum(userVoltage);
+    % * construct waveform
+    % \boldsymbol{s}
+    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    % normalize waveform power
+    waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
+
+    % * compute output voltages
+    % \sum v_{\text{out}}, v\{\text{out}}, \min v_{\text{out}}
+    [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

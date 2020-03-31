@@ -43,9 +43,9 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     carrierWeight = squeeze(sum(channel)) / norm(squeeze(sum(channel)), 'fro') * sqrt(txPower);
 
     % \boldsymbol{M}'_{k}
-    shiftMatrix = cell(1, nSubbands);
+    matrixShift = cell(1, nSubbands);
     for iSubband = 1 : nSubbands
-        shiftMatrix{iSubband} = diag(diag(ones(nSubbands), iSubband - 1), iSubband - 1);
+        matrixShift{iSubband} = diag(diag(ones(nSubbands), iSubband - 1), iSubband - 1);
     end
     % t_{q, k}
     auxiliary = zeros(nUsers, nSubbands);
@@ -54,7 +54,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     for iUser = 1 : nUsers
         carrierWeightMatrix(:, :, iUser) = carrierWeight(:, iUser) * carrierWeight(:, iUser)';
         for iSubband = 1 : nSubbands
-            auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * carrierWeightMatrix(:, :, iUser));
+            auxiliary(iUser, iSubband) = trace(matrixShift{iSubband} * carrierWeightMatrix(:, :, iUser));
         end
     end
 
@@ -73,9 +73,9 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         A1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
             termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).' * nTxs ^ 2 * txPower ^ 2 * pathloss(iUser) ^ 4);
-            C1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * shiftMatrix{1});
+            C1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * matrixShift{1});
             if nSubbands > 1
-                C1{iUser} = C1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, shiftMatrix{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, matrixShift{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             A1{iUser} = C1{iUser} + C1{iUser}';
         end
@@ -210,7 +210,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         auxiliary = zeros(nUsers, nSubbands);
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(shiftMatrix{iSubband} * carrierWeightMatrix_(:, :, iUser));
+                auxiliary(iUser, iSubband) = trace(matrixShift{iSubband} * carrierWeightMatrix_(:, :, iUser));
             end
         end
 

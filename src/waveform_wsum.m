@@ -100,7 +100,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, 
     waveform = reshape(waveform, [nTxs, nSubbands]);
 
     % * compute output voltages
-    % \sum v_{\text{out}}
+    % \sum v_{\text{out}}, v\{\text{out}}, \min v_{\text{out}}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

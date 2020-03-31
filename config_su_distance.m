@@ -19,5 +19,5 @@ tolerance = 1e-3;
 
 %% * Variables
 Variable.distance = 10 : 2 : 20;
-Variable.nTxs = [4, 16, 16, 32, 32];
+Variable.nTxs = [8, 16, 16, 32, 32];
 Variable.nSubbands = [8, 8, 16, 16, 32];

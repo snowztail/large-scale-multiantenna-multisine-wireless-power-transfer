@@ -3,11 +3,10 @@ function [matrixChannelNorm] = matrix_channel_norm(channel)
     %   - calculate the covariance matrix of channel norm
     %
     % InputArg(s):
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
-    %   - nSubbands [N]: number of subbands/subcarriers
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands): channel frequency response at each subband
     %
     % OutputArg(s):
-    %   - matrixChannelNorm [\boldsymbol{M}''] (nSubbands * 1) {nSubbands * nSubbands}: covariance matrix of channel norm
+    %   - matrixChannelNorm [\boldsymbol{M}''] (1 * nSubbands) {nSubbands * nSubbands}: covariance matrix of channel norm
     %
     % Comment(s):
     %   - for single-user MISO systems
@@ -21,7 +20,7 @@ function [matrixChannelNorm] = matrix_channel_norm(channel)
 
     [~, nSubbands, ~] = size(channel);
     % \boldsymbol{M}''
-    matrixChannelNorm = cell(nSubbands, 1);
+    matrixChannelNorm = cell(1, nSubbands);
     for iSubband = 1 : nSubbands
         matrixChannelNorm{iSubband} = diag(diag(vecnorm(channel, 2, 1).' * vecnorm(channel, 2, 1), iSubband - 1), iSubband - 1);
     end
