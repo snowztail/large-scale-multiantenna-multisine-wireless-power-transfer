@@ -6,12 +6,12 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - txPower [P]: transmit power constraint
-    %   - channel [h_{q, n}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - sumVoltage [\sum v_{\text{out}}]: sum of rectifier output DC voltage over all users
-    %   - userVoltage [v_{\text{out}, q}]: individual user voltages
+    %   - userVoltage [v_{\text{out}}]: individual user voltages
     %   - minVoltage [\min v_{\text{out}}]: minimum user voltage
     %
     % Comment(s):
@@ -25,13 +25,25 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
     % Author & Date: Yang (i@snowztail.com) - 11 Mar 20
 
 
-    % \boldsymbol{w}_n
-    precoder = sum(conj(channel) ./ vecnorm(channel, 2, 1), 3);
+
+    % * initialize complex carrier weight by uniform power allocation and spatial precoder by matched filter
+    [nTxs, nSubbands, nUsers] = size(channel);
     % \boldsymbol{p}
-    carrierWeight = sqrt(txPower / norm(precoder, 'fro') ^ 2);
-    % \boldsymbol{s}_n
-    waveform = carrierWeight * precoder;
-    % \sum v_{\text{out}}, v\{\text{out}, q}
+    carrierWeight = repmat(sqrt(txPower / nSubbands / nUsers), [nSubbands, nUsers]);
+    % \boldsymbol{w}
+    precoder = zeros(nTxs, nSubbands, nUsers);
+    for iUser = 1 : nUsers
+        precoder(:, :, iUser) = conj(channel(:, :, iUser)) ./ vecnorm(channel(:, :, iUser), 2, 1);
+    end
+
+    % * construct waveform
+    % \boldsymbol{s}
+    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    % normalize waveform power
+    waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
+
+    % * compute output voltages
+    % \sum v_{\text{out}}, v\{\text{out}}, \min v_{\text{out}}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

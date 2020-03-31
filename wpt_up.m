@@ -11,7 +11,7 @@ for iSubband = 1 : length(Variable.nSubbands)
         [pathloss] = large_scale_fading(distance) * ones(1, nUsers);
         for iRealization = 1 : nRealizations
             channel = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFrequency, fadingType);
-            [~, ~, ~, minVoltageCheRand(iSubband, iUser, iRealization)] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weight, pathloss);
+%             [~, ~, ~, minVoltageCheRand(iSubband, iUser, iRealization)] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weight, pathloss);
             [~, ~, ~, minVoltageUp(iSubband, iUser, iRealization)] = waveform_up(beta2, beta4, txPower, channel);
         end
     end

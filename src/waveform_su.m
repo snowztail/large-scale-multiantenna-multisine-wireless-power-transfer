@@ -6,11 +6,11 @@ function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, toler
     %   - beta2 [\beta_2]: diode second-order parameter
     %   - beta4 [\beta_4]: diode fourth-order parameter
     %   - txPower [P]: transmit power constraint
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands): channel frequency response at each subband
+    %   - channel [\boldsymbol{h] (nTxs * nSubbands): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
     %
     % OutputArg(s):
-    %   - waveform [\boldsymbol{s}_n] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
+    %   - waveform [\boldsymbol{s}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
     %   - voltage [\sum v_{\text{out}}]: rectifier output DC voltage
     %
     % Comment(s):
@@ -82,7 +82,7 @@ function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, toler
     % \boldsymbol{s}
     waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
 
-    % * compute output voltage
+    % * compute output voltages
     % v_{\text{out}}
     [voltage] = harvester_compact(beta2, beta4, waveform, channel);
 

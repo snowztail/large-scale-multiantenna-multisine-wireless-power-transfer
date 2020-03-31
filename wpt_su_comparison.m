@@ -1,5 +1,7 @@
+%% * Initialize script
 clear; close all; clc; setup; config_su_comparison;
-%% Waveform design by SU WPT, CHE WSum, UP and ASS algorithms
+
+%% * Waveform design by SU WPT, CHE WSum, UP and ASS algorithms
 voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
 voltageCheWsum = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
 voltageUp = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
@@ -24,7 +26,8 @@ voltageCheWsum = mean(voltageCheWsum, 3);
 voltageUp = mean(voltageUp, 3);
 voltageAss = mean(voltageAss, 3);
 save('data/wpt_su_comparison.mat');
-%% Result
+
+%% * Result
 figure('Name', sprintf('Average output voltage as a function of (M, N) with K = 1'));
 for iTx = 1: length(Variable.nTxs)
     subplot(length(Variable.nTxs), 1, iTx);

@@ -36,7 +36,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, 
     % \boldsymbol{p}
     carrierWeight = sqrt(txPower) * permute(sum(channel, 1), [2, 3, 1]) / norm(squeeze(sum(channel)), 'fro');
     % \boldsymbol{\tilde{s}}
-    precoder = conj(channel);
+    precoder = zeros(nTxs, nSubbands, nUsers);
+    for iUser = 1 : nUsers
+        precoder(:, :, iUser) = conj(channel(:, :, iUser)) ./ vecnorm(channel(:, :, iUser), 2, 1);
+    end
     % \boldsymbol{s}
     waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
     % normalize waveform power
@@ -96,7 +99,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, 
     % \boldsymbol{s}
     waveform = reshape(waveform, [nTxs, nSubbands]);
 
-    % * compute output voltage
+    % * compute output voltages
     % \sum v_{\text{out}}
     [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
