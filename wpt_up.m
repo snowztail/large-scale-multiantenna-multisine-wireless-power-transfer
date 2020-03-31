@@ -20,11 +20,11 @@ minVoltageCheRand = mean(minVoltageCheRand, 3);
 minVoltageUp = mean(minVoltageUp, 3);
 save('data/wpt_up.mat');
 %% Result
-figure('Name', sprintf('Average minimum output voltage as a function of (N, K) with M = %d', nTxs));
+figure('name', sprintf('Average minimum output voltage as a function of (N, K) with M = %d', nTxs));
 bar(1e3 * [vec(minVoltageCheRand), vec(minVoltageUp)]);
+grid minor;
 label = [repelem(Variable.nSubbands, length(Variable.nUsers)); repmat(Variable.nUsers, [1, length(Variable.nSubbands)])];
 set(gca, 'xticklabel', display_coordinate(label));
-grid on;
 legend('CHE Max-Min-Rand', 'MU UP', 'location', 'ne');
-ylabel('Average minimum v_{out} [mV]')
+ylabel('Average minimum v_{out} [mV]');
 savefig('results/wpt_up.fig');

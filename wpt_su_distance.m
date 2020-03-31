@@ -1,7 +1,7 @@
-%% * Initialize script
+%% * Initialize script for Figure 3a
 clear; close all; clc; setup; config_su_distance;
-
-%% * Waveform design by SU WPT algorithm
+%
+% %% * Waveform design by SU WPT algorithm
 voltage = zeros(length(Variable.nTxs), length(Variable.distance), nRealizations);
 for iCase = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iCase);
@@ -22,9 +22,9 @@ save('data/wpt_su_distance.mat');
 %% * Result
 figure('name', sprintf('Average output voltage by SU WPT as a function of distance'));
 legendString = cell(length(Variable.nTxs), 1);
-hold on;
 for iCase = 1 : length(Variable.nTxs)
     semilogy(Variable.distance, voltage(iCase, :));
+    hold on;
     legendString{iCase} = sprintf('M = %d, N = %d', Variable.nTxs(iCase), Variable.nSubbands(iCase));
 end
 hold off;

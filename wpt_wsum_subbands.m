@@ -1,4 +1,4 @@
-%% * Initialize script
+%% * Initialize script for Figure 4
 clear; close all; clc; setup; config_wsum_subbands;
 
 %% * Waveform design by SU WPT and WSum algorithms
@@ -25,17 +25,17 @@ save('data/wpt_wsum_subbands.mat');
 figure('name', sprintf('Average output voltage by SU WPT and WSum as a function of sinewaves for single user transmission'));
 legendString = cell(2, length(Variable.nTxs));
 legendColor = num2cell(get(gca, 'colororder'), 2);
-hold on;
 for iTx = 1 : length(Variable.nTxs)
     plot(Variable.nSubbands, voltageSu(iTx, :) * 1e3, 'color', legendColor{iTx}, 'marker', 'x');
     legendString{1, iTx} = sprintf('SU WPT: M = %d', Variable.nTxs(iTx));
+    hold on;
     plot(Variable.nSubbands, voltageWsum(iTx, :) * 1e3, 'color', legendColor{iTx}, 'marker', 'o');
     legendString{2, iTx} = sprintf('WSum: M = %d', Variable.nTxs(iTx));
 end
 hold off;
+grid minor;
 xlim([min(Variable.nSubbands), max(Variable.nSubbands)]);
 xticks(Variable.nSubbands);
-grid minor;
 legend(vec(legendString), 'location', 'nw');
 xlabel('Number of tones');
 ylabel('Average v_{out} [mV]');

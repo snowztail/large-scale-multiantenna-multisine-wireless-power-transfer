@@ -1,4 +1,4 @@
-%% * Initialize script
+%% * Initialize script for Figure 3b
 clear; close all; clc; setup; config_ass_distance;
 
 %% * Waveform design by ASS algorithm
@@ -22,10 +22,10 @@ save('data/wpt_ass_distance.mat');
 %% * Result
 figure('name', sprintf('Average output voltage by ASS as a function of distance'));
 legendString = cell(length(Variable.nTxs), 1);
-hold on;
 for iCase = 1 : length(Variable.nTxs)
     semilogy(Variable.distance, voltage(iCase, :));
     legendString{iCase} = sprintf('M = %d, N = %d', Variable.nTxs(iCase), Variable.nSubbands(iCase));
+    hold on;
 end
 hold off;
 grid minor;

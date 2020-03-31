@@ -22,11 +22,11 @@ minVoltageRatio = minVoltageCheRand ./ minVoltageUp;
 save('data/wpt_ratio.mat');
 %% Result
 legendString = cell(length(Variable.nSubbands), 1);
-figure('Name', sprintf('Average minimum output voltage ratio: CHE Max-Min-Rand over MU UP with M = %d', nTxs));
-hold on;
+figure('name', sprintf('Average minimum output voltage ratio: CHE Max-Min-Rand over MU UP with M = %d', nTxs));
 for iSubband = 1 : length(Variable.nSubbands)
     plot(Variable.nUsers, minVoltageRatio(iSubband, :));
     legendString{iSubband} = sprintf('N = %d', Variable.nSubbands(iSubband));
+    hold on;
 end
 hold off;
 grid minor;

@@ -1,4 +1,4 @@
-%% * Initialize script
+%% * Initialize script for Figure 5
 clear; close all; clc; setup; config_su_comparison;
 
 %% * Waveform design by SU WPT, CHE WSum, UP and ASS algorithms
@@ -28,14 +28,14 @@ voltageAss = mean(voltageAss, 3);
 save('data/wpt_su_comparison.mat');
 
 %% * Result
-figure('Name', sprintf('Average output voltage as a function of (M, N) with K = 1'));
+figure('name', sprintf('Average output voltage as a function of (M, N) with K = %d', nUsers));
 for iTx = 1: length(Variable.nTxs)
     subplot(length(Variable.nTxs), 1, iTx);
     bar(1e3 * [voltageSu(iTx, :); voltageCheWsum(iTx, :); voltageUp(iTx, :); voltageAss(iTx, :)]');
+    grid minor;
     label = [repelem(Variable.nTxs(iTx), length(Variable.nSubbands)); Variable.nSubbands];
     set(gca, 'xticklabel', display_coordinate(label));
-    grid on;
     legend('SU WPT', 'CHE WSum', 'UP', 'ASS', 'location', 'nw');
-    ylabel('Average v_{out} [mV]')
+    ylabel('Average v_{out} [mV]');
 end
 savefig('results/wpt_su_comparison.fig');

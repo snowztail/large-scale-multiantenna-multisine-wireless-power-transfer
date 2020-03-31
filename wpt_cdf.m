@@ -21,28 +21,31 @@ for iUser = 1 : length(Variable.nUsers)
 end
 save('data/wpt_cdf.mat');
 %% Result
-figure('Name', sprintf('CDF of output voltage with M = %d and N = %d', nTxs, nSubbands));
+figure('name', sprintf('CDF of output voltage with M = %d and N = %d', nTxs, nSubbands));
 legendString = cell(4, length(Variable.nUsers));
 legendColor = num2cell(get(gca, 'colororder'), 2);
-hold on;
 for iUser = 1 : length(Variable.nUsers)
     plotWsumEq = cdfplot(1e3 * cell2mat(voltageWsumEq(iUser, :)));
-    set(plotWsumEq, 'Color', legendColor{iUser}, 'LineStyle', ':');
+    set(plotWsumEq, 'color', legendColor{iUser}, 'LineStyle', ':');
     legendString{1, iUser} = sprintf('WSum-EQ: K = %d', Variable.nUsers(iUser));
+    hold on;
     plotWsumFa = cdfplot(1e3 * cell2mat(voltageWsumFa(iUser, :)));
-    set(plotWsumFa, 'Color', legendColor{iUser}, 'LineStyle', '-.');
+    set(plotWsumFa, 'color', legendColor{iUser}, 'LineStyle', '-.');
     legendString{2, iUser} = sprintf('WSum-FA: K = %d', Variable.nUsers(iUser));
+    hold on;
     plotRand = cdfplot(1e3 * cell2mat(voltageRand(iUser, :)));
-    set(plotRand, 'Color', legendColor{iUser}, 'LineStyle', '-');
+    set(plotRand, 'color', legendColor{iUser}, 'LineStyle', '-');
     legendString{3, iUser} = sprintf('Max-Min-Rand: K = %d', Variable.nUsers(iUser));
+    hold on;
     plotCheRand = cdfplot(1e3 * cell2mat(voltageCheRand(iUser, :)));
-    set(plotCheRand, 'Color', legendColor{iUser}, 'LineStyle', '--');
+    set(plotCheRand, 'color', legendColor{iUser}, 'LineStyle', '--');
     legendString{4, iUser} = sprintf('CHE Max-Min-Rand: K = %d', Variable.nUsers(iUser));
+    hold on;
 end
-set(gca, 'XScale', 'log')
 hold off;
-grid on;
+grid minor;
+set(gca, 'XScale', 'log')
 legend(legendString(:), 'location', 'nw');
-xlabel('Average v_{out} [mV]')
-ylabel('CDF')
+xlabel('Average v_{out} [mV]');
+ylabel('CDF');
 savefig('results/wpt_cdf.fig');
