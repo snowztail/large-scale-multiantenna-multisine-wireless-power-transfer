@@ -17,7 +17,7 @@ for iCase = 1 : length(Variable.nTxs)
     end
 end
 voltage = mean(voltage, 3);
-save('data/wpt_ass.mat');
+save('data/wpt_ass_distance.mat');
 
 %% * Result
 figure('name', sprintf('Average output voltage by ASS as a function of distance'));
@@ -32,4 +32,4 @@ grid minor;
 legend(legendString);
 xlabel('Distance [m]');
 ylabel('Average v_{out} [V]');
-savefig('results/wpt_ass.fig');
+savefig('results/wpt_ass_distance.fig');

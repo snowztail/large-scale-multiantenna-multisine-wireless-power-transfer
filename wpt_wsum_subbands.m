@@ -1,5 +1,5 @@
 %% * Initialize script
-clear; close all; clc; setup; config_wsum;
+clear; close all; clc; setup; config_wsum_subbands;
 
 %% * Waveform design by SU WPT and WSum algorithms
 voltageSu = zeros(length(Variable.nTxs), length(Variable.nSubbands), nRealizations);
@@ -19,7 +19,7 @@ for iTx = 1 : length(Variable.nTxs)
 end
 voltageSu = mean(voltageSu, 3);
 voltageWsum = mean(voltageWsum, 3);
-save('data/wpt_wsum.mat');
+save('data/wpt_wsum_subbands.mat');
 
 %% * Result
 figure('name', sprintf('Average output voltage by SU WPT and WSum as a function of sinewaves for single user transmission'));
@@ -39,4 +39,4 @@ grid minor;
 legend(vec(legendString), 'location', 'nw');
 xlabel('Number of tones');
 ylabel('Average v_{out} [mV]');
-savefig('results/wpt_wsum.fig');
+savefig('results/wpt_wsum_subbands.fig');
