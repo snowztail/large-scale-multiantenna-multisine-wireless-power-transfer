@@ -80,10 +80,11 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
-        % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
+        % * solve high rank waveform matrix in SDP problem by cvx
         cvx_begin quiet
             % \boldsymbol{X}
             variable highRankcarrierWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
+            % Tr{\boldsymbol{AX}} + \bar{C}
             target = cvx(zeros(1, nUsers));
             traceSum = 0;
             for iUser = 1 : nUsers
@@ -96,7 +97,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         cvx_end
         [~, userIndex] = max(target);
 
-        % * Derive a best rank-1 solution from randomly generated vectors
+        % * choose a best rank-1 solution from randomly generated vectors
         carrierWeightMatrix_ = highRankcarrierWeightMatrix;
         % denote term \boldsymbol{A}'_{q, 1} as \boldsymbol{B}_{1, q} for any q ~= q_0
         B1 = A1;

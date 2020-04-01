@@ -1,4 +1,4 @@
-function [value] = rr_equations_che(deltaVector, component, term, pathloss, nSubbands, nUsers, userIndex, precoderRank)
+function [value] = rr_equations_che(deltaVector, component, constraints, pathloss, nSubbands, nUsers, userIndex, precoderRank)
 
 
 
@@ -12,7 +12,7 @@ function [value] = rr_equations_che(deltaVector, component, term, pathloss, nSub
     value1 = zeros(nUsers, 1);
     for iUser = 1 : nUsers
         if iUser ~= userIndex
-            value1(iUser) = real(trace(component{iUser}' * term{iUser} * component{iUser} * delta{iUser})) - real(trace(component{userIndex}' * term{userIndex} * component{userIndex} * delta{userIndex}));
+            value1(iUser) = real(trace(component{iUser}' * constraints{iUser} * component{iUser} * delta{iUser})) - real(trace(component{userIndex}' * constraints{userIndex} * component{userIndex} * delta{userIndex}));
         end
     end
     value1(userIndex) = [];

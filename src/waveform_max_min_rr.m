@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance, weight)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %   - maximize the minimum voltage with rank reduction
@@ -9,7 +9,6 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w] (1 * nUsers): user weights
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}] (nTxs * nSubbands): complex waveform weights for each transmit antenna and subband
@@ -59,11 +58,9 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
 
     % * update waveform matrix and auxiliary variables iteratively
     isConverged = false;
-    counter = 0;
     % \boldsymbol{A}_0
     A0 = - diag(3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
-        counter = counter + 1;
         % \bar{c}
         cBar = zeros(1, nUsers);
         % \boldsymbol{C}_1
@@ -74,102 +71,67 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             cBar(iUser) = - real(conj(auxiliary(iUser, :)) * A0 * auxiliary(iUser, :).');
             C1{iUser} = - (beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * matrixChannel{iUser, 1};
             if nSubbands > 1
-                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
-        % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
+        % * solve high rank waveform matrix in SDP problem by cvx
         cvx_begin quiet
             % \boldsymbol{X}
-            variable highRankWaveformMatrix(nTxs * nSubbands, nTxs * nSubbands) complex semidefinite;
+            variable solutionMatrix(nTxs * nSubbands, nTxs * nSubbands) complex semidefinite;
+            % Tr{\boldsymbol{AX}} + \bar{C}
             target = cvx(zeros(1, nUsers));
             for iUser = 1 : nUsers
-                target(iUser) = trace(A1{iUser} * highRankWaveformMatrix) + cBar(iUser);
+                target(iUser) = trace(A1{iUser} * solutionMatrix) + cBar(iUser);
             end
             minimize(max(target));
             subject to
-                trace(highRankWaveformMatrix) <= txPower;
+                trace(solutionMatrix) <= txPower;
         cvx_end
         [~, userIndex] = max(target);
 
-        % * Rank reduction for separable SDP
-        waveformMatrix_ = highRankWaveformMatrix;
-        waveformRank = rank(waveformMatrix_);
+        % * rank reduction for separable SDP
+        waveformRank = rank(solutionMatrix);
         while waveformRank ^ 2 > nUsers
             % decompose waveform matrix as a product of a matrix V and its Hermitian
-            waveformFactor = decompose(waveformMatrix_);
-
-            % % flatten trace equations to standard linear equations
-            % coefficient = zeros(nUsers, waveformRank ^ 2);
-            % for iUser = 1 : nUsers
-            %     coefficient(iUser, :) = reshape((waveformFactor' * (A1{iUser} - A1{userIndex}) * waveformFactor).', 1, []);
-            % end
-            % % obtain an orthonormal basis for the null space of the coefficient matrix
-            % delta = null(coefficient);
-            % % nonzero solution can be obtained as a linear combination of null space basis vectors
-            % delta = reshape(delta(:, 1), [waveformRank, waveformRank]);
-            % % ensure positive semidefiniteness
-            % delta = (delta + delta') / 2;
-
+            waveformComponent = decompose(solutionMatrix);
+            % define optimization options
+            options = optimset('algorithm', 'levenberg-marquardt', 'display', 'off', 'maxiter', 200);
+            % initial point
             deltaInit = eye(waveformRank);
-
-            options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
-            delta = fsolve(@(delta) rr_equations(delta, waveformFactor, A1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
-
-            % calculate eigenvalues of delta
+            % the Hermitian solution should satisfy $nUsers$ trace equations
+            delta = fsolve(@(delta)rr_equations(delta, waveformComponent, A1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
+            % get all eigenvalues
             d = eig(delta);
-            % there can be multiple candidates with largest magnitude for each user and we only use the minimum one (the negative one if there is both positive and negative)
+            % there can be both positive and negative candidates and we use the negative one if it happens
             dominantEigenvalue = min(d(abs(d) == max(abs(d))));
             clearvars d;
-            waveformMatrix_ = waveformFactor * (eye(waveformRank) - 1 / dominantEigenvalue * delta) * waveformFactor';
-            % % ! ensure positive semidefiniteness
-            % [v, d] = eig(waveformMatrix_);
-            % d(d < 0) = 0;
-            % waveformMatrix_ = v * d * v';
-            % clearvars v d;
-            % update matrix rank
-            waveformRank = rank(waveformMatrix_);
+            % reconstruct a solution matrix with lower rank
+            solutionMatrix = waveformComponent * (eye(waveformRank) - 1 / dominantEigenvalue * delta) * waveformComponent';
+            % update waveform rank
+            waveformRank = rank(solutionMatrix);
         end
-
-        % Update \boldsymbol{t}_{q, k}
+        waveformMatrix_ = solutionMatrix;
+        % Update \boldsymbol{t}
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
                 auxiliary(iUser, iSubband) = trace(matrixChannel{iUser, iSubband} * waveformMatrix_);
             end
         end
 
-        % test convergence
-        temp = (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro')
-        if (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro') <= tolerance || counter >= 1e2
+        % * test convergence
+        if (norm(waveformMatrix_ - waveformMatrix, 'fro')) / norm(waveformMatrix_, 'fro') <= tolerance
             isConverged = true;
         end
         waveformMatrix = waveformMatrix_;
-
     end
 
-    % obtain the rank-1 beamforming vector
-    [v, d] = svd(waveformMatrix);
-    waveform = v(:, 1) * sqrt(d(1));
+    % * decompose the rank-1 waveform matrix for the waveform vector and convert it to standard notation
+    waveform = reshape(decompose(waveformMatrix), [nTxs, nSubbands]);
 
-    % % decompose waveform matrix for the waveform vector
-    % waveform = decompose(waveformMatrix);
-
-    % v_{\text{out}, q}
-    userVoltage = zeros(1, nUsers);
-    for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * waveform' * matrixChannel{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * matrixChannel{iUser, 1} * waveform * (waveform' * matrixChannel{iUser, 1} * waveform)';
-        if nSubbands > 1
-            for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * matrixChannel{iUser, iSubband + 1} * waveform * (waveform' * matrixChannel{iUser, iSubband + 1} * waveform)';
-            end
-        end
-    end
-    userVoltage = real(userVoltage);
-    minVoltage = min(userVoltage);
-    % \boldsymbol{s_n}
-    waveform = reshape(waveform, [nTxs, nSubbands]);
-    % \sum v_{\text{out}}
-    sumVoltage = sum(userVoltage);
+    % * compute output voltages
+    % \sum v_{\text{out}}, v\{\text{out}}, \min v_{\text{out}}
+    [sumVoltage, userVoltage, minVoltage] = harvester_compact(beta2, beta4, waveform, channel);
 
 end

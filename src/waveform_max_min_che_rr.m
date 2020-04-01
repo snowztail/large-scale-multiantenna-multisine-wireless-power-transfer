@@ -81,10 +81,11 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             A1{iUser} = C1{iUser} + C1{iUser}';
         end
 
-        % * Solve high rank \boldsymbol{X} in SDP problem by cvx (high complexity)
+        % * solve high rank waveform matrix in SDP problem by cvx
         cvx_begin quiet
             % \boldsymbol{X}
             variable highRankcarrierWeightMatrix(nSubbands, nSubbands, nUsers) complex semidefinite;
+            % Tr{\boldsymbol{AX}} + \bar{C}
             target = cvx(zeros(1, nUsers));
             traceSum = 0;
             for iUser = 1 : nUsers
@@ -97,7 +98,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         cvx_end
         [~, userIndex] = max(target);
 
-        % * Rank reduction for separable SDP
+        % * rank reduction for separable SDP
         carrierWeightMatrix_ = highRankcarrierWeightMatrix;
         carrierWeightRank = zeros(nUsers, 1);
         for iUser = 1 : nUsers
@@ -170,8 +171,8 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
 
             % (deltaVector, factor, term, pathloss, nSubbands, nUsers, userIndex, deltaRank)
             % options = optimset('Algorithm', 'levenberg-marquardt', 'Display', 'off');
-            options = optimset('Algorithm', 'Levenberg-Marquardt', 'TolFun', eps, 'TolX', eps, 'Display', 'off', 'MaxIter', 200);
-            delta = fsolve(@(delta) rr_equations_che(delta, carrierWeightFactor, A1, pathloss, nSubbands, nUsers, userIndex, carrierWeightRank), deltaInit, options);
+            options = optimset('algorithm', 'levenberg-marquardt', 'display', 'off', 'maxiter', 200);
+            delta = fsolve(@(delta)rr_equations_che(delta, carrierWeightFactor, A1, pathloss, nSubbands, nUsers, userIndex, carrierWeightRank), deltaInit, options);
 
             % nonzero solution can be obtained as a linear combination of null space basis vectors
             deltaInstance = cell(nUsers, 1);
