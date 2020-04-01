@@ -9,7 +9,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, 
     %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w] (1 * nUsers): user weights
+    %   - weight [\boldsymbol{w}] (1 * nUsers): user weights
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}] (nTxs * nSubbands * nUsers): complex waveform weights for each transmit antenna and subband

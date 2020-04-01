@@ -13,7 +13,7 @@ for iUser = 1 : length(Variable.nUsers)
         [~, ~, ~, minVoltageRr(iUser, iRealization)] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance);
         for iCandidate = 1 : length(Variable.nCandidates)
             nCandidates = Variable.nCandidates(iCandidate);
-            [~, ~, ~, minVoltageRand(iUser, iRealization, iCandidate)] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weight, nCandidates);
+            [~, ~, ~, minVoltageRand(iUser, iRealization, iCandidate)] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, nCandidates);
         end
     end
 end

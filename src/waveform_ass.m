@@ -25,7 +25,6 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, txPower, channel)
 
 
     % * allocate all power to the strongest carrier
-    [nTxs, nSubbands, nUsers] = size(channel);
     % \boldsymbol{p}
     carrierWeight = sqrt(txPower) * (max(vecnorm(channel, 2, 1)) == vecnorm(channel, 2, 1))';
 

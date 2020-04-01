@@ -5,7 +5,7 @@ function [coefficient] = rr_equations(delta, component, constraint, nTxs, nSubba
     % InputArg(s):
     %   - delta [\Delta] (waveformRank * waveformRank): the Hermitian matrix used in rank reduction
     %   - component [V] ((nTxs * nSubbands) * waveformRank): component of the waveform matrix such that V times its Hermitian equals X
-    %   - constraint [A] (1, nUsers) {(nTxs * nSubbands) * (nTxs * nSubbands)}: constraint of QCQP constraints
+    %   - constraint [A] (1, nUsers) {(nTxs * nSubbands) * (nTxs * nSubbands)}: QCQP constraints
     %   - nTxs [M]: number of transmit antennas
     %   - nSubbands [N]: number of subbands/subcarriers
     %   - nUsers [K]: number of users
@@ -40,6 +40,7 @@ function [coefficient] = rr_equations(delta, component, constraint, nTxs, nSubba
     % * the third set is Hermitian constraint: delta is Hermitian matrix
     hermitianCoefficient = real(vec(delta') - vec(delta));
 
+    % * combine coefficients
     coefficient = [targetCoefficient; powerCoefficient; hermitianCoefficient];
 
 end

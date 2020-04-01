@@ -1,4 +1,4 @@
-function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weight, nCandidates)
+function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, nCandidates)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
     %   - maximize the minimum voltage with randomized power allocation
@@ -9,7 +9,6 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
     %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w] (1 * nUsers): user weights
     %   - nCandidates: number of random feasible rank-1 solutions to generate
     %
     % OutputArg(s):
@@ -21,7 +20,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
     % Comment(s):
     %   - maximize the minimum user voltage
     %   - for multi-user MISO systems with arbitrary number of user
-    %   - we first obtain the high rank covariance matrix by CVX, then generate waveform candidates based on random vectors and pick the optimal one as a rank-1 solution
+    %   - we first obtain a high rank covariance matrix by CVX, then generate waveform candidates based on random vectors and pick the optimal one as a rank-1 solution
     %
     % Reference(s):
     %   - Y. Huang and B. Clerckx, "Large-Scale Multiantenna Multisine Wireless Power Transfer," IEEE Transactions on Signal Processing, vol. 65, no. 21, pp. 5812–5827, Jan. 2017.
@@ -62,6 +61,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
     % \boldsymbol{A}_0
     A0 = - diag(3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
+        % * update term A1, C1, and cBar
         % \bar{c}
         cBar = zeros(1, nUsers);
         % \boldsymbol{C}_1
@@ -126,7 +126,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rand
             cBar(iUser) = - real(conj(auxiliary(iUser, :)) * A0 * auxiliary(iUser, :).');
             C1{iUser} = - (beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * matrixChannel{iUser, 1};
             if nSubbands > 1
-                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             A1{iUser} = C1{iUser} + C1{iUser}';
         end

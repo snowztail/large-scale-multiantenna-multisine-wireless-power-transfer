@@ -15,5 +15,8 @@ function [carrierFrequency] = carrier_frequency(centerFrequency, bandwidth, nSub
     %
     % Author & Date: Yang (i@snowztail.com) - 30 Mar 20
 
+
+
     carrierFrequency = centerFrequency - bandwidth * (1 - 1 / nSubbands) / 2: bandwidth / nSubbands: centerFrequency + bandwidth * (1 - 1 / nSubbands) / 2;
+
 end

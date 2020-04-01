@@ -14,6 +14,7 @@ function [coordinateString] = display_coordinate(coordinateMatrix)
     % Author & Date: Yang (i@snowztail.com) - 29 Mar 20
 
 
+
     nCoordinates = size(coordinateMatrix, 2);
     coordinateString = cell(nCoordinates, 1);
     for iCoordinate = 1 : nCoordinates
@@ -25,4 +26,5 @@ function [coordinateString] = display_coordinate(coordinateMatrix)
             error('Sorry, this function currently supports 2-D and 3-D inputs only...');
         end
     end
+
 end

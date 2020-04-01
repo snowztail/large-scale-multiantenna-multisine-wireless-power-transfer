@@ -18,6 +18,7 @@ function [component] = decompose(matrix)
     % Author & Date: Yang (i@snowztail.com) - 25 Mar 20
 
 
+
     r = rank(matrix);
     [u, s] = svd(matrix);
     [s, index] = sort(diag(s), 'descend', 'ComparisonMethod', 'abs');

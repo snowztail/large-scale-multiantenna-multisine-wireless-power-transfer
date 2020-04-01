@@ -1,7 +1,7 @@
 %% * Initialize script for Figure 3a
 clear; close all; clc; setup; config_su_distance;
-%
-% %% * Waveform design by SU WPT algorithm
+
+%% * Waveform design by SU WPT algorithm
 voltage = zeros(length(Variable.nTxs), length(Variable.distance), nRealizations);
 for iCase = 1 : length(Variable.nTxs)
     nTxs = Variable.nTxs(iCase);

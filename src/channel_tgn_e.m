@@ -3,7 +3,7 @@ function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFre
     %   - simulate channel using the power delay profile of the IEEE TGn NLOS channel model E
     %
     % InputArg(s):
-    %   - pathloss [\Lambda]: large-scale channel strength reduction
+    %   - pathloss [\boldsymbol{\Lambda}] (1 * nUsers): large-scale channel strength reduction
     %   - nTxs [M]: number of transmit antennas
     %   - nSubbands [N]: number of subbands/subcarriers
     %   - nUsers [K]: number of users
@@ -11,7 +11,7 @@ function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFre
     %   - fadingType: "flat" or "selective"
     %
     % OutputArg(s):
-    %   - channel [\boldsymbol{h_{q, n}}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
+    %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %
     % Comment(s):
     %   - assume single receive antenna
@@ -22,6 +22,8 @@ function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFre
     %   - V. Erceg et al., "TGn channel models," in Version 4. IEEE 802.11–03/940r4, May 2004.
     %
     % Author & Date: Yang (i@snowztail.com) - 07 Mar 20
+
+
 
     nClusters = 4;
     nTaps = 18;
@@ -35,8 +37,6 @@ function [channel] = channel_tgn_e(pathloss, nTxs, nSubbands, nUsers, carrierFre
     % model taps as i.i.d. CSCG variables
     tapGain = repmat(sqrt(tapPower / 2), [1 1 nTxs nUsers]) .* (randn(nTaps, nClusters, nTxs, nUsers) + 1i * randn(nTaps, nClusters, nTxs, nUsers));
     tapGain = permute(sum(tapGain, 2), [1 3 4 2]);
-    
-
     fading = zeros(nTxs, nSubbands, nUsers);
     switch fadingType
     case 'selective'

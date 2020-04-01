@@ -1,4 +1,4 @@
-function [vector] = randomize(matrix)
+function [vector] = randomized_solution(matrix)
     % Function:
     %   - generate a randomized complex vector for homogeneous QCQP with two double-sided constraints
     %
@@ -16,6 +16,7 @@ function [vector] = randomize(matrix)
     %   - Y. Huang and D. P. Palomar, "Randomized Algorithms for Optimal Solutions of Double-Sided QCQP With Applications in Signal Processing," IEEE Transactions on Signal Processing, vol. 62, no. 5, pp. 1093–1108, 2014.
     %
     % Author & Date: Yang (i@snowztail.com) - 26 Mar 20
+
 
 
     Q1 = real(matrix);

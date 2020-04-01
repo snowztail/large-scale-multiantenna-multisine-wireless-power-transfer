@@ -9,8 +9,8 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_che_wsum(bet
     %   - txPower [P]: transmit power constraint
     %   - channel [\boldsymbol{h}] (nTxs * nSubbands * nUsers): channel frequency response at each subband
     %   - tolerance [\epsilon]: convergence ratio
-    %   - weight [w] (1 * nUsers): user weights
-    %   - pathloss [\Lambda] (1 * nUsers): user pathlosses
+    %   - weight [\boldsymbol{w}] (1 * nUsers): user weights
+    %   - pathloss [\boldsymbol{\Lambda}] (1 * nUsers): large-scale channel strength reduction
     %
     % OutputArg(s):
     %   - waveform [\boldsymbol{s}_{\text{asym}}] (nTxs * nSubbands): the asymptotically optimal complex waveform weights for each transmit antenna and subband

@@ -1,5 +1,7 @@
+%% * Initialize script for Figure 10
 clear; close all; clc; setup; config_cdf;
-%% Waveform design by EQ WSum, FA WSum, Max-Min-Rand, and CHE Max-Min-Rand algorithms
+
+%% * Waveform design by EQ WSum, FA WSum, Max-Min-Rand, and CHE Max-Min-Rand algorithms
 voltageWsumEq = cell(length(Variable.nUsers), nRealizations);
 voltageWsumFa = cell(length(Variable.nUsers), nRealizations);
 voltageRand = cell(length(Variable.nUsers), nRealizations);
@@ -15,12 +17,13 @@ for iUser = 1 : length(Variable.nUsers)
         weightFa = voltageUp .^ (-1) / sum(voltageUp .^ (-1));
         [~, ~, voltageWsumEq{iUser, iRealization}] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weightEq);
         [~, ~, voltageWsumFa{iUser, iRealization}] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weightFa);
-        [~, ~, voltageRand{iUser, iRealization}] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, weightEq, nCandidates);
-        [~, ~, voltageCheRand{iUser, iRealization}] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, weightEq, pathloss);
+        [~, ~, voltageRand{iUser, iRealization}] = waveform_max_min_rand(beta2, beta4, txPower, channel, tolerance, nCandidates);
+        [~, ~, voltageCheRand{iUser, iRealization}] = waveform_max_min_che_rand(beta2, beta4, txPower, channel, tolerance, pathloss);
     end
 end
 save('data/wpt_cdf.mat');
-%% Result
+
+%% * Result
 figure('name', sprintf('CDF of output voltage with M = %d and N = %d', nTxs, nSubbands));
 legendString = cell(4, length(Variable.nUsers));
 legendColor = num2cell(get(gca, 'colororder'), 2);
@@ -44,8 +47,8 @@ for iUser = 1 : length(Variable.nUsers)
 end
 hold off;
 grid minor;
-set(gca, 'XScale', 'log')
-legend(legendString(:), 'location', 'nw');
+set(gca, 'xscale', 'log')
+legend(vec(legendString), 'location', 'nw');
 xlabel('Average v_{out} [mV]');
 ylabel('CDF');
 savefig('results/wpt_cdf.fig');

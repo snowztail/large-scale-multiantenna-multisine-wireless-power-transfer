@@ -19,7 +19,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     % Comment(s):
     %   - maximize the minimum user voltage
     %   - for multi-user MISO systems with number of user no larger than 3
-    %   - in each iteration, we first obtain the high rank covariance matrix by CVX, then perform rank reduction for a rank-1 solution
+    %   - in each iteration, we first obtain a high rank covariance matrix by CVX, then perform rank reduction for a rank-1 solution
     %
     % Reference(s):
     %   - Y. Huang and B. Clerckx, "Large-Scale Multiantenna Multisine Wireless Power Transfer," IEEE Transactions on Signal Processing, vol. 65, no. 21, pp. 5812–5827, Jan. 2017.
@@ -61,6 +61,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     % \boldsymbol{A}_0
     A0 = - diag(3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
+        % * update term A1, C1, and cBar
         % \bar{c}
         cBar = zeros(1, nUsers);
         % \boldsymbol{C}_1
@@ -104,7 +105,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             delta = fsolve(@(delta)rr_equations(delta, waveformComponent, A1, nTxs, nSubbands, nUsers, userIndex), deltaInit, options);
             % get all eigenvalues
             d = eig(delta);
-            % there can be both positive and negative candidates and we use the negative one if it happens
+            % there may be both positive and negative candidates and we use the negative one in that case
             dominantEigenvalue = min(d(abs(d) == max(abs(d))));
             clearvars d;
             % reconstruct a solution matrix with lower rank
