@@ -1,6 +1,7 @@
 function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, tolerance)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - maximize the user volgate by optimizing carrier weight
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -80,7 +81,7 @@ function [waveform, voltage] = waveform_su(beta2, beta4, txPower, channel, toler
 
     % * construct waveform
     % \boldsymbol{s}
-    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
 
     % * compute output voltages
     % v_{\text{out}}

@@ -30,4 +30,5 @@ function [matrixChannel] = matrix_channel(channel)
             end
         end
     end
+
 end

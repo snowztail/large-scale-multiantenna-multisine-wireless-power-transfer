@@ -1,6 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_che_wsum(beta2, beta4, txPower, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - maximize weighted sum voltage with power allocation based on large-scale fading
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -103,7 +104,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_che_wsum(bet
 
     % * construct waveform
     % \bar{\boldsymbol{s}}
-    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
     % \boldsymbol{s}_{\text{asym}}
     waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
 

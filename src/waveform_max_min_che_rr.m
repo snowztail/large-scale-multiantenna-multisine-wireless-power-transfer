@@ -1,6 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_rr(beta2, beta4, txPower, channel, tolerance, weight, pathloss)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - maximize the minimum voltage with rank reduction power allocation based on large-scale fading
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -62,17 +63,17 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
     counter = 0;
     maxTarget = 0;
     % \boldsymbol{A}_0
-    termA0 = diag(- 3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
+    A0 = - diag(3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
         counter = counter + 1;
         % \bar{c}_q'
-        termBarC = zeros(nUsers, 1);
+        cBar = zeros(nUsers, 1);
         % \boldsymbol{C}'_{q, 1}
         C1 = cell(nUsers, 1);
         % \boldsymbol{A}'_{q, 1}
         A1 = cell(nUsers, 1);
         for iUser = 1 : nUsers
-            termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).' * nTxs ^ 2 * txPower ^ 2 * pathloss(iUser) ^ 4);
+            cBar(iUser) = - real(conj(auxiliary(iUser, :)) * A0 * auxiliary(iUser, :).' * nTxs ^ 2 * txPower ^ 2 * pathloss(iUser) ^ 4);
             C1{iUser} = - ((beta2 * txPower * nTxs * pathloss(iUser) ^ 2 + 3 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * beta4 * auxiliary(iUser, 1)) / 2 * matrixShift{1});
             if nSubbands > 1
                 C1{iUser} = C1{iUser} - 3 * beta4 * txPower ^ 2 * nTxs ^ 2 * pathloss(iUser) ^ 4 * sum(cat(3, matrixShift{2 : end}) .* reshape(conj(auxiliary(iUser, 2 : end)), [1, 1, nSubbands - 1]), 3);
@@ -87,7 +88,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
             target = cvx(zeros(1, nUsers));
             traceSum = 0;
             for iUser = 1 : nUsers
-                target(iUser) = trace(A1{iUser} * highRankcarrierWeightMatrix(:, :, iUser)) + termBarC(iUser);
+                target(iUser) = trace(A1{iUser} * highRankcarrierWeightMatrix(:, :, iUser)) + cBar(iUser);
                 traceSum = traceSum + pathloss(iUser) * trace(highRankcarrierWeightMatrix(:, :, iUser));
             end
             minimize(max(target));
@@ -217,7 +218,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_che_
         % Update target function
         target = zeros(nUsers, 1);
         for iUser = 1 : nUsers
-            target(iUser) = real(trace(A1{iUser} * carrierWeightMatrix_(:, :, iUser)) + termBarC(iUser));
+            target(iUser) = real(trace(A1{iUser} * carrierWeightMatrix_(:, :, iUser)) + cBar(iUser));
         end
         maxTarget_ = max(target);
 

@@ -35,7 +35,7 @@ function [waveform, voltage] = waveform_ass(beta2, beta4, txPower, channel)
 
     % * construct waveform
     % \boldsymbol{s}
-    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
 
     % * compute output voltages
     % v_{\text{out}}

@@ -1,6 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, beta4, txPower, channel)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - perform equal power allocation over all carriers
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -38,7 +39,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_up(beta2, be
 
     % * construct waveform
     % \boldsymbol{s}
-    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
     % normalize waveform power
     waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
 

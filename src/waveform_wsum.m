@@ -1,6 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
+    %   - maximize the weight sum volgate by designing waveform directly
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -41,7 +42,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_wsum(beta2, 
         precoder(:, :, iUser) = conj(channel(:, :, iUser)) ./ vecnorm(channel(:, :, iUser), 2, 1);
     end
     % \boldsymbol{s}
-    waveform = sum(repmat(reshape(carrierWeight, [1 nSubbands nUsers]), [nTxs 1 1]) .* precoder, 3);
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
     % normalize waveform power
     waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
     % \boldsymbol{X}

@@ -1,7 +1,7 @@
 function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(beta2, beta4, txPower, channel, tolerance, weight)
     % Function:
     %   - optimize the amplitude and phase of transmit multisine waveform
-    %   - maximize the minimum voltage based on rank reduction
+    %   - maximize the minimum voltage with rank reduction
     %
     % InputArg(s):
     %   - beta2 [\beta_2]: diode second-order parameter
@@ -30,46 +30,51 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
 
 
 
+    % * initialize complex carrier weight by channel strength and spatial precoder by matched filter
     [nTxs, nSubbands, nUsers] = size(channel);
-    % ? initialize \boldsymbol{s} by uniform power allocation and omidirectional beamforming
-    waveform = sqrt(txPower / nTxs / nSubbands) * ones(nTxs, nSubbands);
+    % \boldsymbol{p}
+    carrierWeight = sqrt(txPower) * permute(sum(channel, 1), [2, 3, 1]) / norm(squeeze(sum(channel)), 'fro');
+    % \boldsymbol{\tilde{s}}
+    precoder = zeros(nTxs, nSubbands, nUsers);
+    for iUser = 1 : nUsers
+        precoder(:, :, iUser) = conj(channel(:, :, iUser)) ./ vecnorm(channel(:, :, iUser), 2, 1);
+    end
+    % \boldsymbol{s}
+    waveform = sum(permute(carrierWeight, [3, 1, 2]) .* precoder, 3);
+    % normalize waveform power
+    waveform = sqrt(txPower) * waveform / norm(waveform, 'fro');
     % \boldsymbol{X}
-    waveformMatrix = waveform(:) * waveform(:)';
+    waveformMatrix = vec(waveform) * vec(waveform)';
 
-    % \boldsymbol{M}_{q, k}
-    channelMatrix = cell(nUsers, nSubbands);
-    % t_{q, k}
+    % * get block diagonal channel matrix and initialize auxiliary variables
+    % \boldsymbol{M}
+    [matrixChannel] = matrix_channel(channel);
+    % \boldsymbol{t}
     auxiliary = zeros(nUsers, nSubbands);
     for iUser = 1 : nUsers
-        subchannel = channel(:, :, iUser);
-        % \boldsymbol{M}_{q}
-        subchannelMatrix = conj(subchannel(:)) * subchannel(:).';
         for iSubband = 1 : nSubbands
-            channelMatrix{iUser, iSubband} = zeros(nTxs * nSubbands);
-            for jSubband = 1 : nSubbands + 1 - iSubband
-                channelMatrix{iUser, iSubband}((jSubband - 1) * nTxs + 1 : jSubband * nTxs, (iSubband - 1) * nTxs + (jSubband - 1) * nTxs + 1 : (iSubband - 1) * nTxs + jSubband * nTxs) = subchannelMatrix((jSubband - 1) * nTxs + 1 : jSubband * nTxs, (iSubband - 1) * nTxs + (jSubband - 1) * nTxs + 1 : (iSubband - 1) * nTxs + jSubband * nTxs);
-            end
-            auxiliary(iUser, iSubband) = trace(channelMatrix{iUser, iSubband} * waveformMatrix);
+            auxiliary(iUser, iSubband) = trace(matrixChannel{iUser, iSubband} * waveformMatrix);
         end
     end
 
+    % * update waveform matrix and auxiliary variables iteratively
     isConverged = false;
     counter = 0;
     % \boldsymbol{A}_0
-    termA0 = diag(- 3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
+    A0 = - diag(3 * beta4 * [1 / 2, ones(1, nSubbands - 1)]);
     while ~isConverged
         counter = counter + 1;
-        % \bar{c}_q
-        termBarC = zeros(1, nUsers);
-        % \boldsymbol{C}_{q, 1}
+        % \bar{c}
+        cBar = zeros(1, nUsers);
+        % \boldsymbol{C}_1
         C1 = cell(1, nUsers);
-        % \boldsymbol{A}_{q, 1}
+        % \boldsymbol{A}_1
         A1 = cell(1, nUsers);
         for iUser = 1 : nUsers
-            termBarC(iUser) = - real(conj(auxiliary(iUser, :)) * termA0 * auxiliary(iUser, :).');
-            C1{iUser} = - ((beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * channelMatrix{iUser, 1});
+            cBar(iUser) = - real(conj(auxiliary(iUser, :)) * A0 * auxiliary(iUser, :).');
+            C1{iUser} = - (beta2 + 3 * beta4 * auxiliary(iUser, 1)) / 2 * matrixChannel{iUser, 1};
             if nSubbands > 1
-                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, channelMatrix{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
+                C1{iUser} = C1{iUser} - weight(iUser) * 3 * beta4 * sum(cat(3, matrixChannel{iUser, 2 : end}) .* reshape(conj(auxiliary(iUser,2 : end)), [1, 1, nSubbands - 1]), 3);
             end
             A1{iUser} = C1{iUser} + C1{iUser}';
         end
@@ -80,7 +85,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
             variable highRankWaveformMatrix(nTxs * nSubbands, nTxs * nSubbands) complex semidefinite;
             target = cvx(zeros(1, nUsers));
             for iUser = 1 : nUsers
-                target(iUser) = trace(A1{iUser} * highRankWaveformMatrix) + termBarC(iUser);
+                target(iUser) = trace(A1{iUser} * highRankWaveformMatrix) + cBar(iUser);
             end
             minimize(max(target));
             subject to
@@ -130,7 +135,7 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
         % Update \boldsymbol{t}_{q, k}
         for iUser = 1 : nUsers
             for iSubband = 1 : nSubbands
-                auxiliary(iUser, iSubband) = trace(channelMatrix{iUser, iSubband} * waveformMatrix_);
+                auxiliary(iUser, iSubband) = trace(matrixChannel{iUser, iSubband} * waveformMatrix_);
             end
         end
 
@@ -153,10 +158,10 @@ function [waveform, sumVoltage, userVoltage, minVoltage] = waveform_max_min_rr(b
     % v_{\text{out}, q}
     userVoltage = zeros(1, nUsers);
     for iUser = 1 : nUsers
-        userVoltage(iUser) = beta2 * waveform' * channelMatrix{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * channelMatrix{iUser, 1} * waveform * (waveform' * channelMatrix{iUser, 1} * waveform)';
+        userVoltage(iUser) = beta2 * waveform' * matrixChannel{iUser, 1} * waveform + (3 / 2) * beta4 * waveform' * matrixChannel{iUser, 1} * waveform * (waveform' * matrixChannel{iUser, 1} * waveform)';
         if nSubbands > 1
             for iSubband = 1 : nSubbands - 1
-                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * channelMatrix{iUser, iSubband + 1} * waveform * (waveform' * channelMatrix{iUser, iSubband + 1} * waveform)';
+                userVoltage(iUser) = userVoltage(iUser) + 3 * beta4 * waveform' * matrixChannel{iUser, iSubband + 1} * waveform * (waveform' * matrixChannel{iUser, iSubband + 1} * waveform)';
             end
         end
     end
